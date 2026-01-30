@@ -1,0 +1,21 @@
+{
+  "name": "dataset_toolbox",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-azuretools.vscode-containers",
+        "ms-toolsai.jupyter",
+        "mhutchie.git-graph",
+        "anthropic.claude-code",
+        "charliermarsh.ruff"
+      ]
+    }
+  },
+  "postCreateCommand": "uv sync",
+  "remoteUser": "root"
+}
