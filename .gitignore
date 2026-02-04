@@ -11,3 +11,6 @@ wheels/
 
 # Ignore all images from git
 *.png
+
+# Also ignore metadata
+metadata.json

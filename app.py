@@ -10,6 +10,7 @@ from PIL import Image
 from nicegui import ui
 from nicegui.events import KeyEventArguments
 from tools import pixel_colour, remove_pixel, merge_mask, grow_mask, shrink_mask, split_connected
+from data_saver import DatasetSaver
 
 
 class DatasetEditor:
@@ -24,6 +25,7 @@ class DatasetEditor:
         self.interactive_image: ui.interactive_image = ui.interactive_image()
         self.status_label: ui.label = ui.label()
         self.nav_label: ui.label = ui.label()
+        self.saver: Optional[DatasetSaver]  = None
 
     def load_dataset(self) -> int:
         """Load all images and masks from dataset."""
@@ -48,7 +50,7 @@ class DatasetEditor:
         return len(self.samples)
 
     def get_current_sample(self) -> Optional[tuple[str, np.ndarray, np.ndarray]]:
-        """Get the current image sample."""
+        """Get the current image sample as (name, image, mask)."""
         if not self.samples or not (0 <= self.current_index < len(self.samples)):
             return None
         return self.samples[self.current_index]
@@ -177,10 +179,36 @@ class DatasetEditor:
 
     def save_and_next(self):
         """Save current image and proceed to next."""
+        # Only create saver on first save
+        if self.saver is None:
+            self.saver = DatasetSaver(str(self.output_path))
+        
+        # Ensure we get a none None sample
         sample = self.get_current_sample()
-        if sample:
-            ui.notify(f"Save {sample[0]} and proceed to next", type="positive")
-            self.navigate(1)
+        if sample is None:
+            return
+        
+        # Unpack the sample
+        name, image, _ = sample
+        
+        # Use the current edited mask, not the original
+        mask = self.current_mask if self.current_mask is not None else sample[2]
+        
+        # Check if already saved
+        is_already_saved = self.saver.is_processed(original_name=name)
+        
+        if is_already_saved:
+            # Delete the old version
+            self.saver.delete_sample_by_original_name(original_name=name)
+            ui.notify(f"Replaced {name}", type="info")
+        
+        # Save the (new or updated) sample
+        self.saver.save_sample(image=image, mask=mask, original_name=name)
+        
+        if not is_already_saved:
+            ui.notify(f"Saved {name}", type="positive")
+        
+        self.navigate(1)
 
     def refresh_display(self):
         """Refresh the image display."""
