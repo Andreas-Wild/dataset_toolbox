@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image
 from nicegui import ui
 from nicegui.events import KeyEventArguments
+from tools import pixel_colour, remove_pixel
 
 
 class DatasetEditor:
@@ -103,17 +104,16 @@ class DatasetEditor:
         """Handle mouse click on the image."""
         x, y = int(e.image_x), int(e.image_y)
         self.last_click = (x, y)
-        
-        # Check for Ctrl+click (remove pixel) - ctrl is a direct attribute on MouseEventArguments
-        if e.ctrl:
-            mask_id = self.get_mask_id_at(x, y)
-            if mask_id:
-                ui.notify(f"Remove pixel at ({x}, {y}) from mask {mask_id}", type="info")
-            else:
-                ui.notify(f"Cannot remove: ({x}, {y}) is background", type="warning")
-            return
-        
         mask_id = self.get_mask_id_at(x, y)
+        # Check for Ctrl+click, mask exists and the click is on a mask.
+        if e.ctrl and self.current_mask is not None and mask_id:
+            self.current_mask = remove_pixel(self.current_mask, x, y)
+        # If we have a normal click we colour the pixel to the nearest colour.
+        elif self.current_mask is not None:
+            self.current_mask = pixel_colour(self.current_mask, x, y)
+        
+        # No matter what if a click happened we refresh the image display.
+        self.refresh_display()
         msg = f"Clicked: ({x}, {y}) | Mask ID: {mask_id if mask_id else 'background'}"
         self.status_label.set_text(msg)
 

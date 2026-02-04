@@ -54,7 +54,11 @@ def pixel_colour(mask: np.ndarray, x: int, y: int) -> np.ndarray:
 
     nearest_pixel_value = mask[tuple(non_zeros[nearest])]
     # Update the mask with this pixel value
-    mask[x, y] = nearest_pixel_value
+    mask[y, x] = nearest_pixel_value
+    return mask
+
+def remove_pixel(mask: np.ndarray, x:int, y:int) -> np.ndarray:
+    mask[y, x] = 0
     return mask
 
 
