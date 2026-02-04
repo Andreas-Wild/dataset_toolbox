@@ -136,6 +136,54 @@ def merge_mask(mask: np.ndarray) -> np.ndarray:
     return mask
 
 
+def split_connected(mask: np.ndarray, x: int, y: int) -> np.ndarray:
+    """Split connected pixels at position (x, y) into a new mask ID.
+    
+    :param mask: The mask containing the pixels to split
+    :type mask: np.ndarray
+    :param x: The x coordinate of the clicked position
+    :type x: int
+    :param y: The y coordinate of the clicked position
+    :type y: int
+    :return: Returns the updated mask with split connected component
+    :return_type: np.ndarray
+    """
+    # Check bounds
+    if not (0 <= y < mask.shape[0] and 0 <= x < mask.shape[1]):
+        return mask
+    
+    mask_id = mask[y, x]
+    
+    # If background, nothing to split
+    if mask_id == 0:
+        return mask
+    
+    # Create binary mask for the selected mask_id
+    binary_mask = (mask == mask_id).astype(np.uint8)
+    
+    # Find connected components
+    num_labels, labels = cv2.connectedComponents(binary_mask)
+    
+    # Find which component contains the clicked point
+    clicked_label = labels[y, x]
+    
+    # If no connected region found (shouldn't happen but safety check)
+    if clicked_label == 0:
+        return mask
+    
+    # Find max mask ID in current mask
+    max_id = int(mask.max())
+    new_id = max_id + 1
+    
+    # Change only the connected component containing the clicked pixel to new ID
+    result = mask.copy()
+    connected_region = (labels == clicked_label)
+    result[connected_region] = new_id
+    
+    print(f"[green]Split connected pixels to mask ID {new_id}[/green]")
+    return result
+
+
 if __name__ == "__main__":
     print(canvas)
     print("=" * 40)

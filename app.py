@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 from nicegui import ui
 from nicegui.events import KeyEventArguments
-from tools import pixel_colour, remove_pixel, merge_mask, grow_mask, shrink_mask
+from tools import pixel_colour, remove_pixel, merge_mask, grow_mask, shrink_mask, split_connected
 
 
 class DatasetEditor:
@@ -161,6 +161,20 @@ class DatasetEditor:
             self.save_mask_state()
             self.current_mask = merge_mask(self.current_mask.copy())
 
+    def split_connected_pixels(self):
+        """Split connected pixels of selected mask into a new mask ID."""
+        if self.last_click is None:
+            ui.notify("Click on a mask first", type="warning")
+            return
+        
+        if self.current_mask is None:
+            ui.notify("No mask available", type="warning")
+            return
+        
+        self.save_mask_state()
+        x, y = self.last_click
+        self.current_mask = split_connected(self.current_mask, x, y)
+
     def save_and_next(self):
         """Save current image and proceed to next."""
         sample = self.get_current_sample()
@@ -238,8 +252,18 @@ def main_page():
                 ui.separator()
 
                 # Status
-                ui.label("Click Info").classes("text-lg font-semibold")
-                editor.status_label = ui.label("Click on image to see coordinates")
+                ui.label("Controls").classes("text-lg font-semibold")
+                ui.markdown("""
+                - `Left` and `Right` arrows to navigate between images
+                - Save images to output path with `Enter`
+                - `Click` to colour a pixel & select a mask
+                - `Ctrl+Click` to remove colour from a pixel
+                - Use `Backspace` to undo
+                - Use `g` to grow the selected mask
+                - Use `s` to shrink the selected mask
+                - Use `m` to merge the two closest masks
+                - Use `c` to split connected pixels to new mask ID
+                            """)
 
         # Main content area
         with splitter.after:
@@ -290,6 +314,10 @@ def handle_keyboard(e: KeyEventArguments, editor: DatasetEditor):
         # M to merge masks
         elif e.key.name == "m":
             editor.merge_masks_action()
+        
+        # C to split connected pixels
+        elif e.key.name == "c":
+            editor.split_connected_pixels()
 
         editor.refresh_display()
 
