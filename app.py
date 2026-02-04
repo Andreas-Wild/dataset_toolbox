@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from nicegui import ui
+from nicegui.events import KeyEventArguments
 
 
 class DatasetEditor:
@@ -89,20 +90,67 @@ class DatasetEditor:
             self.last_click = None
             self.refresh_display()
 
+    def get_mask_id_at(self, x: int, y: int) -> int | None:
+        """Get the mask ID at the given position."""
+        if self.current_mask is None:
+            return None
+        if 0 <= y < self.current_mask.shape[0] and 0 <= x < self.current_mask.shape[1]:
+            mask_id = int(self.current_mask[y, x])
+            return mask_id if mask_id > 0 else None
+        return None
+
     def handle_click(self, e):
         """Handle mouse click on the image."""
         x, y = int(e.image_x), int(e.image_y)
         self.last_click = (x, y)
         
-        mask_id = None
-        if self.current_mask is not None:
-            if 0 <= y < self.current_mask.shape[0] and 0 <= x < self.current_mask.shape[1]:
-                mask_id = int(self.current_mask[y, x])
-                if mask_id == 0:
-                    mask_id = None
+        # Check for Ctrl+click (remove pixel) - ctrl is a direct attribute on MouseEventArguments
+        if e.ctrl:
+            mask_id = self.get_mask_id_at(x, y)
+            if mask_id:
+                ui.notify(f"Remove pixel at ({x}, {y}) from mask {mask_id}", type="info")
+            else:
+                ui.notify(f"Cannot remove: ({x}, {y}) is background", type="warning")
+            return
         
+        mask_id = self.get_mask_id_at(x, y)
         msg = f"Clicked: ({x}, {y}) | Mask ID: {mask_id if mask_id else 'background'}"
         self.status_label.set_text(msg)
+
+    def grow_mask_action(self):
+        """Grow the selected mask."""
+        if self.last_click is None:
+            ui.notify("Click on a mask first", type="warning")
+            return
+        x, y = self.last_click
+        mask_id = self.get_mask_id_at(x, y)
+        if mask_id:
+            ui.notify(f"Grow mask {mask_id}", type="info")
+        else:
+            ui.notify("Cannot grow: selected position is background", type="warning")
+
+    def shrink_mask_action(self):
+        """Shrink the selected mask."""
+        if self.last_click is None:
+            ui.notify("Click on a mask first", type="warning")
+            return
+        x, y = self.last_click
+        mask_id = self.get_mask_id_at(x, y)
+        if mask_id:
+            ui.notify(f"Shrink mask {mask_id}", type="info")
+        else:
+            ui.notify("Cannot shrink: selected position is background", type="warning")
+
+    def merge_masks_action(self):
+        """Merge the two closest masks."""
+        ui.notify("Merge closest masks", type="info")
+
+    def save_and_next(self):
+        """Save current image and proceed to next."""
+        sample = self.get_current_sample()
+        if sample:
+            ui.notify(f"Save {sample[0]} and proceed to next", type="positive")
+            self.navigate(1)
 
     def refresh_display(self):
         """Refresh the image display."""
@@ -190,6 +238,38 @@ def main_page():
                     on_mouse=editor.handle_click,
                     events=["mousedown"],
                 ).style("image-rendering: pixelated; min-height: 80vh; width: auto;")
+
+    # Register keyboard shortcuts
+    ui.keyboard(
+        on_key=lambda e: handle_keyboard(e, editor),
+        ignore=["input", "textarea"],
+    )
+
+
+def handle_keyboard(e: KeyEventArguments, editor: DatasetEditor):
+    """Handle keyboard shortcuts."""
+    if e.action.keydown and not e.action.repeat:
+        # Arrow keys for navigation
+        if e.key.arrow_left:
+            editor.navigate(-1)
+        elif e.key.arrow_right:
+            editor.navigate(1)
+        
+        # Tab to save and proceed
+        elif e.key.enter:
+            editor.save_and_next()
+        
+        # G to grow mask
+        elif e.key.name == "g":
+            editor.grow_mask_action()
+        
+        # S to shrink mask  
+        elif e.key.name == "s":
+            editor.shrink_mask_action()
+        
+        # M to merge masks
+        elif e.key.name == "m":
+            editor.merge_masks_action()
 
 
 ui.run(title="Image Dataset Editor", port=8080, reload=True)
