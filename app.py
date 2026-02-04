@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from nicegui import ui
-from nicegui.events import KeyEventArguments
+from nicegui.events import KeyEventArguments, MouseEventArguments
 from tools import pixel_colour, remove_pixel, merge_mask, grow_mask, shrink_mask, split_connected
 from data_saver import DatasetSaver
 
@@ -23,7 +23,7 @@ class DatasetEditor:
         self.last_click: Optional[tuple[int, int]] = None
         self.mask_history: list[np.ndarray] = []
         self.interactive_image: ui.interactive_image = ui.interactive_image()
-        self.status_label: ui.label = ui.label()
+        self.status_label: ui.label = ui.label("(X, Y) = (0, 0) | Mask ID: background")
         self.nav_label: ui.label = ui.label()
         self.saver: Optional[DatasetSaver]  = None
 
@@ -116,7 +116,7 @@ class DatasetEditor:
         else:
             ui.notify("Original Mask", type="warning")
 
-    def handle_click(self, e):
+    def handle_click(self, e: MouseEventArguments):
         """Handle mouse click on the image."""
         x, y = int(e.image_x), int(e.image_y)
         self.last_click = (x, y)
@@ -126,13 +126,19 @@ class DatasetEditor:
         # Check for Ctrl+click, mask exists and the click is on a mask.
         if e.ctrl and self.current_mask is not None and mask_id:
             self.current_mask = remove_pixel(self.current_mask, x, y)
+        # Add functionality for Shift+Click to grow the selected mask
+        elif e.shift and self.current_mask is not None and mask_id:
+            self.grow_mask_action()
+        # Add functionality for Alt+Click to shrink the selected mask
+        elif e.alt and self.current_mask is not None and mask_id:
+            self.shrink_mask_action()
         # If we have a normal click we colour the pixel to the nearest colour.
-        elif self.current_mask is not None:
+        elif not e.ctrl and self.current_mask is not None:
             self.current_mask = pixel_colour(self.current_mask, x, y)
         
         # No matter what if a click happened we refresh the image display.
         self.refresh_display()
-        msg = f"Clicked: ({x}, {y}) | Mask ID: {mask_id if mask_id else 'background'}"
+        msg = f"(X, Y) = ({x}, {y}) | Mask ID: background"
         self.status_label.set_text(msg)
 
     def grow_mask_action(self):
@@ -239,7 +245,7 @@ def main_page():
     with ui.header().classes("items-center justify-between"):
         ui.label("Image Dataset Editor").classes("text-2xl font-bold")
 
-    with ui.splitter(value=20, limits=(15,40)).classes("w-full h-full") as splitter:
+    with ui.splitter(value=20, limits=(0,30)).classes("w-full h-full") as splitter:
         # Sidebar
         with splitter.before:
             with ui.column().classes("p-4 gap-4 w-full"):
@@ -282,16 +288,16 @@ def main_page():
                 # Status
                 ui.label("Controls").classes("text-lg font-semibold")
                 ui.markdown("""
-                - `Left` and `Right` arrows to navigate between images
-                - Save images to output path with `Enter`
-                - `Click` to colour a pixel & select a mask
-                - `Ctrl+Click` to remove colour from a pixel
-                - Use `Backspace` to undo
-                - Use `g` to grow the selected mask
-                - Use `s` to shrink the selected mask
-                - Use `m` to merge the two closest masks
-                - Use `c` to split connected pixels to new mask ID
-                            """)
+                - **`'Left'`** and **`'Right'`** arrows to navigate between images
+                - Save images to output path with **`'Enter'`**
+                - **`'Click'`** to colour a pixel & select a mask
+                - **`'Ctrl+Click'`** to remove colour from a pixel
+                - Use **`'Backspace'`** to undo
+                - Use **`'g'`** or **`'Shift+Click'`** to grow the selected mask
+                - Use **`'s'`** or **`'Alt+Click'`** to shrink the selected mask
+                - Use **`'m'`** to merge the two closest masks
+                - Use **`'c'`** to split connected pixels to new mask ID
+                """)
 
         # Main content area
         with splitter.after:
@@ -303,9 +309,10 @@ def main_page():
                 editor.interactive_image = ui.interactive_image(
                     source=f"data:image/png;base64,{b64}",
                     cross=False,
+                    
                     on_mouse=editor.handle_click,
                     events=["mousedown"],
-                ).style("image-rendering: pixelated; min-height: 80vh; width: auto;")
+                ).style("image-rendering: pixelated; min-height: 80vh; width: auto; user-select: none; -webkit-user-select: none;")
 
     # Register keyboard shortcuts
     ui.keyboard(
