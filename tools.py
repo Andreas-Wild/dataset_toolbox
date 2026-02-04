@@ -76,7 +76,7 @@ def pixel_colour(mask: np.ndarray, x: int, y: int) -> np.ndarray:
         return mask
 
     # Use euclidean distance
-    distances = np.sum((non_zeros - [x, y]) ** 2, axis=1)
+    distances = np.sum((non_zeros - [y, x]) ** 2, axis=1)
     nearest = np.argmin(distances)
 
     nearest_pixel_value = mask[tuple(non_zeros[nearest])]

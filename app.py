@@ -20,6 +20,7 @@ class DatasetEditor:
         self.current_index: int = 0
         self.current_mask: Optional[np.ndarray] = None
         self.last_click: Optional[tuple[int, int]] = None
+        self.mask_history: list[np.ndarray] = []
         self.interactive_image: ui.interactive_image = ui.interactive_image()
         self.status_label: ui.label = ui.label()
         self.nav_label: ui.label = ui.label()
@@ -89,6 +90,7 @@ class DatasetEditor:
             _, _, mask = self.samples[self.current_index]
             self.current_mask = mask.copy()
             self.last_click = None
+            self.mask_history = []  # Clear history when switching images
             self.refresh_display()
 
     def get_mask_id_at(self, x: int, y: int) -> int | None:
@@ -100,11 +102,25 @@ class DatasetEditor:
             return mask_id if mask_id > 0 else None
         return None
 
+    def save_mask_state(self):
+        """Save the current mask state to history."""
+        if self.current_mask is not None:
+            self.mask_history.append(self.current_mask.copy())
+
+    def undo(self):
+        """Restore the previous mask state from history."""
+        if self.mask_history:
+            self.current_mask = self.mask_history.pop()
+        else:
+            ui.notify("Original Mask", type="warning")
+
     def handle_click(self, e):
         """Handle mouse click on the image."""
         x, y = int(e.image_x), int(e.image_y)
         self.last_click = (x, y)
         mask_id = self.get_mask_id_at(x, y)
+        # Save state before modification
+        self.save_mask_state()
         # Check for Ctrl+click, mask exists and the click is on a mask.
         if e.ctrl and self.current_mask is not None and mask_id:
             self.current_mask = remove_pixel(self.current_mask, x, y)
@@ -125,6 +141,7 @@ class DatasetEditor:
         x, y = self.last_click
         mask_id = self.get_mask_id_at(x, y)
         if self.current_mask is not None and mask_id:
+            self.save_mask_state()
             self.current_mask = grow_mask(self.current_mask.copy(), mask_id)
 
     def shrink_mask_action(self):
@@ -135,11 +152,13 @@ class DatasetEditor:
         x, y = self.last_click
         mask_id = self.get_mask_id_at(x, y)
         if self.current_mask is not None and mask_id:
+            self.save_mask_state()
             self.current_mask = shrink_mask(self.current_mask.copy(), mask_id)
 
     def merge_masks_action(self):
         """Merge the two closest masks."""
         if self.current_mask is not None:
+            self.save_mask_state()
             self.current_mask = merge_mask(self.current_mask.copy())
 
     def save_and_next(self):
@@ -255,6 +274,10 @@ def handle_keyboard(e: KeyEventArguments, editor: DatasetEditor):
         # Tab to save and proceed
         elif e.key.enter:
             editor.save_and_next()
+        
+        # Backspace to undo
+        elif e.key.backspace:
+            editor.undo()
         
         # G to grow mask
         elif e.key.name == "g":
