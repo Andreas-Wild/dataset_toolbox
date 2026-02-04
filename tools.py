@@ -40,6 +40,33 @@ def grow_mask(mask: np.ndarray, mask_id: int | None = None) -> np.ndarray:
     else:
         return mask
 
+def shrink_mask(mask: np.ndarray, mask_id: int | None = None) -> np.ndarray:
+    """
+    This function shrinks the input mask by one pixel. No diagonals.
+
+    :param mask: The mask that should be shrunk
+    :type mask: np.ndarray
+    :param mask_id: The class or number of the mask int between (1...5)
+    :type mask_id: int | None
+    :return: Returns the updated mask after growing
+    :return_type: ndarray[_AnyShape, dtype[Any]]
+    """
+    if mask_id is not None:
+        # Create mask for id
+        binary_mask = np.array((mask == mask_id), dtype=np.uint8)
+        # Get SE and erode
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+        eroded = cv2.erode(binary_mask, kernel, iterations=1)
+
+        result = mask.copy()
+
+        # Update the mask_id pixels to match the eroded version
+        result[mask == mask_id] = eroded[mask == mask_id] * mask_id
+
+        return result
+    else:
+        return mask
+
 
 def pixel_colour(mask: np.ndarray, x: int, y: int) -> np.ndarray:
     non_zeros = np.argwhere(mask)
@@ -49,12 +76,16 @@ def pixel_colour(mask: np.ndarray, x: int, y: int) -> np.ndarray:
         return mask
 
     # Use euclidean distance
-    distances = np.sum((non_zeros - [x, y]) ** 2, axis=1)
+    distances = np.sum((non_zeros - [y, x]) ** 2, axis=1)
     nearest = np.argmin(distances)
 
     nearest_pixel_value = mask[tuple(non_zeros[nearest])]
     # Update the mask with this pixel value
-    mask[x, y] = nearest_pixel_value
+    mask[y, x] = nearest_pixel_value
+    return mask
+
+def remove_pixel(mask: np.ndarray, x:int, y:int) -> np.ndarray:
+    mask[y, x] = 0
     return mask
 
 
@@ -103,6 +134,54 @@ def merge_mask(mask: np.ndarray) -> np.ndarray:
         return result
 
     return mask
+
+
+def split_connected(mask: np.ndarray, x: int, y: int) -> np.ndarray:
+    """Split connected pixels at position (x, y) into a new mask ID.
+    
+    :param mask: The mask containing the pixels to split
+    :type mask: np.ndarray
+    :param x: The x coordinate of the clicked position
+    :type x: int
+    :param y: The y coordinate of the clicked position
+    :type y: int
+    :return: Returns the updated mask with split connected component
+    :return_type: np.ndarray
+    """
+    # Check bounds
+    if not (0 <= y < mask.shape[0] and 0 <= x < mask.shape[1]):
+        return mask
+    
+    mask_id = mask[y, x]
+    
+    # If background, nothing to split
+    if mask_id == 0:
+        return mask
+    
+    # Create binary mask for the selected mask_id
+    binary_mask = (mask == mask_id).astype(np.uint8)
+    
+    # Find connected components
+    num_labels, labels = cv2.connectedComponents(binary_mask)
+    
+    # Find which component contains the clicked point
+    clicked_label = labels[y, x]
+    
+    # If no connected region found (shouldn't happen but safety check)
+    if clicked_label == 0:
+        return mask
+    
+    # Find max mask ID in current mask
+    max_id = int(mask.max())
+    new_id = max_id + 1
+    
+    # Change only the connected component containing the clicked pixel to new ID
+    result = mask.copy()
+    connected_region = (labels == clicked_label)
+    result[connected_region] = new_id
+    
+    print(f"[green]Split connected pixels to mask ID {new_id}[/green]")
+    return result
 
 
 if __name__ == "__main__":

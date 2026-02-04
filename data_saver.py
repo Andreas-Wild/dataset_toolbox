@@ -39,6 +39,37 @@ class DatasetSaver:
                 return True
         return False
 
+    def delete_sample_by_original_name(self, original_name: str) -> bool:
+        """Delete a saved sample by its original name.
+        
+        Returns True if sample was found and deleted, False otherwise.
+        """
+        filename_to_delete = None
+        
+        # Find the filename associated with this original name
+        for filename, sample_data in self.metadata["samples"].items():
+            if sample_data.get("original_name") == original_name:
+                filename_to_delete = filename
+                break
+        
+        if filename_to_delete is None:
+            return False
+        
+        # Delete image and mask files
+        image_path = self.image_dir / filename_to_delete
+        mask_path = self.mask_dir / filename_to_delete
+        
+        if image_path.exists():
+            image_path.unlink()
+        if mask_path.exists():
+            mask_path.unlink()
+        
+        # Remove from metadata (but keep counter incrementing)
+        del self.metadata["samples"][filename_to_delete]
+        self._save_metadata()
+        
+        return True
+
     def generate_filename(self, original_name: str | None = None) -> str:
         """Generate unique filename with timestamp and counter"""
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -52,6 +83,9 @@ class DatasetSaver:
                 "original_name": original_name,
                 "created_at": timestamp,
             }
+        
+        # Save metadata immediately after updating counter and samples
+        self._save_metadata()
 
         return filename
 
@@ -65,5 +99,4 @@ class DatasetSaver:
         Image.fromarray(image).save(self.image_dir / filename)
         Image.fromarray(mask).save(self.mask_dir / filename)
 
-        self._save_metadata()
         return filename
