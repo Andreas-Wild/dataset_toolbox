@@ -1,4 +1,6 @@
-"""Minimal NiceGUI port of the Image Dataset Editor."""
+"""This module provides a NiceGUI web app to interactively edit masks. The DatasetEditor class may be imported, and pointed to an arbitrary dataset location,
+provided that the location contains a 'images' and 'masks' directory and a 'metadata.json' file. Note that the class may only be initialised inside a nicegui.ui context.
+The class allows users to add/remove pixels, grow/shrink masks, merge/separate nearby masks, undo edits and save the result to a new dataset."""
 
 import base64
 import io
@@ -12,11 +14,12 @@ from nicegui.events import MouseEventArguments
 from mask_utils import pixel_colour, remove_pixel, merge_mask, grow_mask, shrink_mask, split_connected
 from data_saver import DatasetSaver
 
-
+# TODO: add toggle to only load files not already handled to avoid repeated clicking through correct images.
+# This should be done once per instance to still allow users to replace previous incorrect labels.
 class DatasetEditor:
-    def __init__(self):
-        self.dataset_path: Path = Path.cwd() / "input"
-        self.output_path: Path = Path.cwd() / "output"
+    def __init__(self, dataset_path: Path = Path.cwd() / "input", output_path: Path | str = Path.cwd() / "output"):
+        self.dataset_path: Path = Path(dataset_path)
+        self.output_path: Path = Path(output_path)
         self.samples: list[tuple[str, np.ndarray, np.ndarray]] = []
         self.current_index: int = 0
         self.current_mask: Optional[np.ndarray] = None

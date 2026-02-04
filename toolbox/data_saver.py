@@ -1,3 +1,7 @@
+"""
+The DatasetSaver class is used to save images, masks and metadata with unique ids. This class is the final part of the data pipeline for creating the master's project dataset.
+This class may be imported anywhere where an image, mask and filename are available. The class is used internally in the DatasetEditor class.
+"""
 from datetime import datetime
 import json
 import numpy as np
@@ -6,9 +10,6 @@ from pathlib import Path
 
 
 class DatasetSaver:
-    """
-    The DatasetSaver class is used to save images, masks and metadata with unique ids. This class is the final part of the data pipeline for creating my master's project dataset.
-    """
     def __init__(self, output_path: str):
         self.output_path = Path(output_path)
         self.image_dir = self.output_path / "images"
