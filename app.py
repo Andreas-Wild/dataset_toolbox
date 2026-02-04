@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 from nicegui import ui
 from nicegui.events import KeyEventArguments
-from tools import pixel_colour, remove_pixel
+from tools import pixel_colour, remove_pixel, merge_mask, grow_mask, shrink_mask
 
 
 class DatasetEditor:
@@ -124,10 +124,8 @@ class DatasetEditor:
             return
         x, y = self.last_click
         mask_id = self.get_mask_id_at(x, y)
-        if mask_id:
-            ui.notify(f"Grow mask {mask_id}", type="info")
-        else:
-            ui.notify("Cannot grow: selected position is background", type="warning")
+        if self.current_mask is not None and mask_id:
+            self.current_mask = grow_mask(self.current_mask.copy(), mask_id)
 
     def shrink_mask_action(self):
         """Shrink the selected mask."""
@@ -136,14 +134,13 @@ class DatasetEditor:
             return
         x, y = self.last_click
         mask_id = self.get_mask_id_at(x, y)
-        if mask_id:
-            ui.notify(f"Shrink mask {mask_id}", type="info")
-        else:
-            ui.notify("Cannot shrink: selected position is background", type="warning")
+        if self.current_mask is not None and mask_id:
+            self.current_mask = shrink_mask(self.current_mask.copy(), mask_id)
 
     def merge_masks_action(self):
         """Merge the two closest masks."""
-        ui.notify("Merge closest masks", type="info")
+        if self.current_mask is not None:
+            self.current_mask = merge_mask(self.current_mask.copy())
 
     def save_and_next(self):
         """Save current image and proceed to next."""
@@ -270,6 +267,8 @@ def handle_keyboard(e: KeyEventArguments, editor: DatasetEditor):
         # M to merge masks
         elif e.key.name == "m":
             editor.merge_masks_action()
+
+        editor.refresh_display()
 
 
 ui.run(title="Image Dataset Editor", port=8080, reload=True)

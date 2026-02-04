@@ -40,6 +40,33 @@ def grow_mask(mask: np.ndarray, mask_id: int | None = None) -> np.ndarray:
     else:
         return mask
 
+def shrink_mask(mask: np.ndarray, mask_id: int | None = None) -> np.ndarray:
+    """
+    This function shrinks the input mask by one pixel. No diagonals.
+
+    :param mask: The mask that should be shrunk
+    :type mask: np.ndarray
+    :param mask_id: The class or number of the mask int between (1...5)
+    :type mask_id: int | None
+    :return: Returns the updated mask after growing
+    :return_type: ndarray[_AnyShape, dtype[Any]]
+    """
+    if mask_id is not None:
+        # Create mask for id
+        binary_mask = np.array((mask == mask_id), dtype=np.uint8)
+        # Get SE and erode
+        kernel = cv2.getStructuringElement(cv2.MORPH_CROSS, (3, 3))
+        eroded = cv2.erode(binary_mask, kernel, iterations=1)
+
+        result = mask.copy()
+
+        # Update the mask_id pixels to match the eroded version
+        result[mask == mask_id] = eroded[mask == mask_id] * mask_id
+
+        return result
+    else:
+        return mask
+
 
 def pixel_colour(mask: np.ndarray, x: int, y: int) -> np.ndarray:
     non_zeros = np.argwhere(mask)
