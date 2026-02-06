@@ -9,7 +9,8 @@ wheels/
 # Virtual environments
 .venv
 
-# Ignore all images from git
+# Ignore all images from git and optional data folder
+data
 *.png
 
 # Also ignore metadata

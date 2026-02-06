@@ -1,8 +1,13 @@
 {
   "name": "dataset_toolbox",
   "build": {
-    "dockerfile": "Dockerfile"
+    "dockerfile": "Dockerfile",
+    "context": ".."
   },
+  // Mount a read-only bind mount into the workspace so it shows up next to your repo.
+  // "mounts": [
+  //   "source=C:/Users/aw/Desktop/masters_data/raw/flowdata/2025_11_03/Calibration Beads/1,target=${containerWorkspaceFolder}/data,type=bind,readonly"
+  // ],
   "customizations": {
     "vscode": {
       "extensions": [
