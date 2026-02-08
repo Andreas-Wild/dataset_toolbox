@@ -1,4 +1,7 @@
 import numpy as np
+from PIL import Image
+import io
+import base64
 from rich import print
 import cv2
 
@@ -182,6 +185,35 @@ def split_connected(mask: np.ndarray, x: int, y: int) -> np.ndarray:
     
     print(f"[green]Split connected pixels to mask ID {new_id}[/green]")
     return result
+
+def overlay(image: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """Create overlay of mask on image with colored regions."""
+    if len(image.shape) == 2:
+        img_rgb = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    elif image.shape[2] == 4:
+        img_rgb = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+    else:
+        img_rgb = image.copy()
+
+    mask_colour = cv2.applyColorMap((mask * 40).astype(np.uint8), cv2.COLORMAP_JET)
+    mask_colour = cv2.cvtColor(mask_colour, cv2.COLOR_BGR2RGB)
+
+    mask_binary = (mask > 0).astype(np.uint8)
+    mask_binary_3ch = np.stack([mask_binary] * 3, axis=-1) * 255
+
+    overlayed = np.where(
+        mask_binary_3ch,
+        cv2.addWeighted(img_rgb, 0.5, mask_colour, 0.5, 0),
+        img_rgb,
+    )
+    return overlayed.astype(np.uint8)
+
+def array_to_base64(arr: np.ndarray) -> str:
+    """Convert numpy array to base64 encoded PNG."""
+    img = Image.fromarray(arr)
+    buffer = io.BytesIO()
+    img.save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode()
 
 
 if __name__ == "__main__":
