@@ -3,10 +3,12 @@
     - Update outdated xml schema.
     - Rewrite multiple single channel images into a single multi channel file."""
 
+import os
 import numpy as np
 import tifffile
 from pathlib import Path
 from typing import Generator
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from rich import print
 import warnings
 import logging
@@ -14,6 +16,41 @@ import logging
 # Suppress tifffile warnings for malformed legacy TIFF files
 warnings.filterwarnings('ignore', module='tifffile')
 logging.getLogger('tifffile').setLevel(logging.ERROR)
+
+
+# ── Module-level helpers (must be picklable for ProcessPoolExecutor) ──────────
+
+def _read_pgm_mask(file_path: str) -> np.ndarray:
+    """Read a PGM (P2 ASCII format) mask file and return as numpy array."""
+    with open(file_path, 'r') as f:
+        magic = f.readline().strip()
+        if magic != 'P2':
+            raise ValueError(f"Unsupported PGM format: {magic}")
+        line = f.readline()
+        while line.startswith('#'):
+            line = f.readline()
+        width, height = map(int, line.split())
+        max_val = int(f.readline())
+        data = np.fromstring(f.read(), dtype=np.uint8, sep=' ')
+    return data.reshape((height, width))
+
+
+def _read_channel(file_path: str, channel: str, dtype) -> tuple[str, np.ndarray, np.ndarray, dict] | None:
+    """Read a single channel's image, mask, and metadata. Returns None on failure."""
+    try:
+        filename = file_path + channel + ".ome.tif"
+        with tifffile.TiffFile(filename) as tif_file:
+            image_array = tif_file.asarray().astype(dtype)
+            metadata_dict = tifffile.xml2dict(tif_file.ome_metadata)
+        mask_path = file_path.replace("data/", "data/ExportedMasks/") + channel + ".dmask.pgm"
+        mask_array = _read_pgm_mask(mask_path).astype(dtype)
+        return (filename.split('/')[-1], image_array, mask_array, metadata_dict)
+    except FileNotFoundError:
+        return None
+    except Exception as e:
+        print(f"Error reading tiff file: {e}")
+        return None
+
 
 class LegacyViewer():
     """The LegacyViewer class transforms old OMETIF file format images into new file formats.
@@ -34,52 +71,40 @@ class LegacyViewer():
 
     def _iterdir(self, pattern: str = "*_Ch1.ome.tif") -> Generator[Path]:
         for filename in Path.glob(self.input_dir, pattern=pattern):
-            yield str(filename).strip("_Ch1.ome.tif")
-    
-    def _read_pgm_mask(self, file_path: str) -> np.ndarray:
-        """Read a PGM (P2 ASCII format) mask file and return as numpy array."""
-        with open(file_path, 'r') as f:
-            # Read and validate magic number
-            magic = f.readline().strip()
-            if magic != 'P2':
-                raise ValueError(f"Unsupported PGM format: {magic}")
-            
-            # Skip comment lines
-            line = f.readline()
-            while line.startswith('#'):
-                line = f.readline()
-            
-            # Parse dimensions (width height)
-            width, height = map(int, line.split())
-            
-            # Parse max value, since it is a boolean array we don't use it.
-            max_val = int(f.readline())
-            
-            # Read all pixel data
-            data_text = f.read()
-            data = np.array(data_text.split(), dtype=np.uint8)
-            
-        return data.reshape((height, width))
-    
-    def get_image_channels(self, dtype:np.uint8|np.uint16=np.uint8) -> Generator[list[tuple[np.ndarray, np.ndarray, dict]]]:
-        """Return the different image channels with their calculated default mask. Returns a generator that yields all image channels per base filename."""
-        for file_path in self.filename_generator:
-            image_channels = []
-            for channel in ["_Ch1", "_Ch6"]:
-                try:
-                    # Read the tiffile and extract metadata:
-                    filename = file_path + channel + ".ome.tif"
-                    with tifffile.TiffFile(filename) as tif_file:
-                        image_array = tif_file.asarray().astype(dtype)
-                        metadata_dict = tifffile.xml2dict(tif_file.ome_metadata)
-                    # Read the corresponding mask using numpy
-                    mask_path = file_path.replace("data/", "data/ExportedMasks/") + channel + ".dmask.pgm"
-                    mask_array = self._read_pgm_mask(mask_path).astype(dtype)
-                    image_channels.append((filename, image_array, mask_array, metadata_dict))
-                except FileNotFoundError:
-                    print(f"File {file_path} not found. Skipping...")
-                    continue
-                except Exception as e:
-                    print(f"Error reading tiff file: {e}")
-                    continue
-            yield image_channels
+            yield str(filename).removesuffix("_Ch1.ome.tif")
+
+    def get_image_channels(self, dtype:np.uint8|np.uint16=np.uint8, max_workers:int|None=None) -> Generator[list[tuple[str, np.ndarray, np.ndarray, dict]]]:
+        """Return the different image channels with their calculated default mask.
+        Returns a generator that yields all image channels per base filename.
+        
+        Args:
+            dtype: Output array dtype (np.uint8 or np.uint16).
+            max_workers: Number of processes for parallel work. Defaults to CPU count.
+        """
+        channels = ["_Ch1", "_Ch6"]
+        if max_workers is None:
+            max_workers = os.cpu_count() or 4
+
+        # Collect all file paths upfront so we can submit work in bulk
+        file_paths = list(self.filename_generator)
+
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all (file, channel) pairs at once
+            future_to_key = {}
+            for file_path in file_paths:
+                for ch in channels:
+                    future = executor.submit(_read_channel, file_path, ch, dtype)
+                    future_to_key[future] = file_path
+
+            # Collect results grouped by base filename
+            results_by_file: dict[str, list] = {fp: [] for fp in file_paths}
+            for future in as_completed(future_to_key):
+                file_path = future_to_key[future]
+                result = future.result()
+                if result is not None:
+                    results_by_file[file_path].append(result)
+
+        # Yield in original file order
+        for file_path in file_paths:
+            if results_by_file[file_path]:
+                yield results_by_file[file_path]

@@ -5,13 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "lxml>=6.0.2",
     "matplotlib>=3.10.8",
     "nicegui>=2.0.0",
     "numpy>=2.4.1",
     "opencv-python-headless>=4.13.0.90",
     "pillow>=11.0.0",
     "pydantic>=2.12.5",
+    "pyometiff>=1.0.1",
     "rich>=14.2.0",
+    "xmltodict>=1.0.2",
 ]
 
 [dependency-groups]
