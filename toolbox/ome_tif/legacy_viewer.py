@@ -20,6 +20,24 @@ logging.getLogger('tifffile').setLevel(logging.ERROR)
 
 # ── Module-level helpers (must be picklable for ProcessPoolExecutor) ──────────
 
+def _normalize_to_dtype(image: np.ndarray, dtype) -> np.ndarray:
+    """Normalize an image array to the target dtype's range.
+
+    When converting from a higher bit-depth (e.g. uint16) to a lower one
+    (e.g. uint8), a raw `.astype()` truncates by taking ``value % 256``,
+    which produces salt-and-pepper artifacts.  Instead, this helper
+    rescales the pixel values linearly into the target range.
+    """
+    if image.dtype == dtype:
+        return image
+    target_info = np.iinfo(dtype)
+    img_min, img_max = float(image.min()), float(image.max())
+    if img_max > img_min:
+        scaled = (image.astype(np.float64) - img_min) / (img_max - img_min) * target_info.max
+        return scaled.astype(dtype)
+    return np.zeros_like(image, dtype=dtype)
+
+
 def _read_pgm_mask(file_path: str) -> np.ndarray:
     """Read a PGM (P2 ASCII format) mask file and return as numpy array."""
     with open(file_path, 'r') as f:
@@ -40,10 +58,10 @@ def _read_channel(file_path: str, channel: str, dtype) -> tuple[str, np.ndarray,
     try:
         filename = file_path + channel + ".ome.tif"
         with tifffile.TiffFile(filename) as tif_file:
-            image_array = tif_file.asarray().astype(dtype)
+            image_array = _normalize_to_dtype(tif_file.asarray(), dtype)
             metadata_dict = tifffile.xml2dict(tif_file.ome_metadata)
         mask_path = file_path.replace("data/", "data/ExportedMasks/") + channel + ".dmask.pgm"
-        mask_array = _read_pgm_mask(mask_path).astype(dtype)
+        mask_array = _normalize_to_dtype(_read_pgm_mask(mask_path), dtype)
         return (filename.split('/')[-1], image_array, mask_array, metadata_dict)
     except FileNotFoundError:
         return None

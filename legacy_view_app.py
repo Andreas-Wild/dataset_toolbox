@@ -18,11 +18,13 @@ def get_next_batch():
 
 @ui.page('/')
 def main():
-    grid_container = ui.element('div').classes('w-full')
+    # State: current batch data and overlay toggle
+    state = {'batch': None, 'show_overlay': False}
 
-    def show_next():
+    def render_batch():
+        """Render the current batch, respecting the overlay toggle."""
         grid_container.clear()
-        batch = get_next_batch()
+        batch = state['batch']
         if batch is None:
             with grid_container:
                 ui.label('No more images.').classes('text-h5')
@@ -32,16 +34,29 @@ def main():
                 for filename, image_array, mask_array, metadata in batch:
                     with ui.card().tight():
                         ui.label(filename).classes('p-2 font-bold')
-                        b64 = array_to_base64(image_array)
+                        if state['show_overlay'] and mask_array is not None:
+                            display = overlay(image_array, mask_array)
+                        else:
+                            display = image_array
+                        b64 = array_to_base64(display)
                         ui.image(f'data:image/png;base64,{b64}').style(PIXELATED_STYLE)
-                        if mask_array is not None:
-                            b64_mask = array_to_base64(mask_array)
-                            ui.label('Mask:').classes('p-2')
-                            ui.image(f'data:image/png;base64,{b64_mask}').style(PIXELATED_STYLE)
                         with ui.expansion('Metadata').classes('w-full'):
                             ui.json_editor({'content': {'json': metadata}})
 
-    ui.button('Next Batch', on_click=show_next).classes('m-4')
+    def show_next():
+        state['batch'] = get_next_batch()
+        render_batch()
+
+    def toggle_overlay():
+        state['show_overlay'] = not state['show_overlay']
+        overlay_btn.props(f'color={"primary" if state["show_overlay"] else "grey"}')
+        render_batch()
+
+    with ui.row().classes('m-4 items-center gap-2'):
+        ui.button('Next Image', on_click=show_next)
+        overlay_btn = ui.button('Toggle Mask Overlay', on_click=toggle_overlay, color='grey')
+    grid_container = ui.element('div').classes('w-full')
+
     show_next()
 
 
