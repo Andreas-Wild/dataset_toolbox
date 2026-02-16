@@ -74,6 +74,7 @@ class RLEConverter():
             tasks = json.load(f)
 
         print(f"Total tasks found in JSON: {len(tasks)}")
+        
         processed_count = 0
         skipped_count = 0
 
@@ -87,12 +88,43 @@ class RLEConverter():
             task_progress = progress.add_task("[cyan]Converting images...", total=len(tasks))
             
             for task in tasks:
-                if 'mask' not in task or not task['mask']:
+                # Check if task has annotations
+                if 'annotations' not in task or not task['annotations']:
+                    skipped_count += 1
+                    progress.advance(task_progress)
+                    continue
+                
+                # Get the first annotation's result
+                annotation = task['annotations'][0]
+                if 'result' not in annotation or not annotation['result']:
+                    skipped_count += 1
+                    progress.advance(task_progress)
+                    continue
+                
+                # Extract brush masks from result
+                brush_masks = [r for r in annotation['result'] if r.get('type') == 'brushlabels']
+                if not brush_masks:
                     skipped_count += 1
                     progress.advance(task_progress)
                     continue
 
-                file_name = task['img'].split('/')[-1].split('?')[0]
+                # Get image filename from task data
+                if 'data' not in task or 'image' not in task['data']:
+                    print(f"Skipping task {task.get('id')}: No image path found")
+                    skipped_count += 1
+                    progress.advance(task_progress)
+                    continue
+                
+                # Extract filename from URL (handle /data/local-files/?d=filename format)
+                image_path = task['data']['image']
+                if '?d=' in image_path:
+                    file_name = image_path.split('?d=')[-1]
+                else:
+                    file_name = image_path.split('/')[-1]
+                
+                # Extract just the base filename (remove any subdirectories)
+                base_file_name = os.path.basename(file_name)
+                
                 src_path = os.path.join(self.image_source, file_name)
 
                 if not os.path.exists(src_path):
@@ -102,8 +134,8 @@ class RLEConverter():
                     continue
 
                 try:
-                    h = task['mask'][0]['original_height']
-                    w = task['mask'][0]['original_width']
+                    h = brush_masks[0]['original_height']
+                    w = brush_masks[0]['original_width']
                 except KeyError:
                     print(f"Skipping {file_name}: Missing dimension metadata.")
                     skipped_count += 1
@@ -113,18 +145,19 @@ class RLEConverter():
                 # Create Instance Mask (background=0, objects=1,2,3...)
                 instance_mask = np.zeros((h, w), dtype=np.uint8)
 
-                for i, mask_data in enumerate(task['mask']):
+                for i, mask_data in enumerate(brush_masks):
                     try:
-                        binary_mask = self.decode_rle(mask_data['rle'], h, w)
+                        rle = mask_data['value']['rle']
+                        binary_mask = self.decode_rle(rle, h, w)
                         instance_id = i + 1
                         instance_mask[binary_mask > 0] = instance_id
                     except Exception as e:
                         print(f"Error decoding mask for {file_name}: {e}")
                         continue
 
-                # Save Image and Mask as PNG
-                shutil.copy(src_path, os.path.join(img_dir, file_name))
-                mask_filename = os.path.splitext(file_name)[0] + '.png'
+                # Save Image and Mask as PNG (use base_file_name without subdirs)
+                shutil.copy(src_path, os.path.join(img_dir, base_file_name))
+                mask_filename = os.path.splitext(base_file_name)[0] + '_mask.png'
                 cv2.imwrite(os.path.join(mask_dir, mask_filename), instance_mask, [cv2.IMWRITE_PNG_COMPRESSION, 1])
                 
                 processed_count += 1
@@ -190,4 +223,3 @@ if __name__ == "__main__":
 
     converter = RLEConverter(args.annotation_json, args.image_source_directory, args.output_dir)
     converter.prepare_dataset()
-        

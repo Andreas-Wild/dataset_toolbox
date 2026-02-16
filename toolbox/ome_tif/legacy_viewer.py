@@ -60,8 +60,17 @@ def _read_channel(file_path: str, channel: str, dtype) -> tuple[str, np.ndarray,
         with tifffile.TiffFile(filename) as tif_file:
             image_array = _normalize_to_dtype(tif_file.asarray(), dtype)
             metadata_dict = tifffile.xml2dict(tif_file.ome_metadata)
-        mask_path = file_path.replace("data/", "data/ExportedMasks/") + channel + ".dmask.pgm"
-        mask_array = _normalize_to_dtype(_read_pgm_mask(mask_path), dtype)
+
+        # Look for mask in an ExportedMasks/ sibling folder
+        base_dir = str(Path(file_path).parent)
+        base_name = Path(file_path).name
+        mask_path = os.path.join(base_dir, "ExportedMasks", base_name + channel + ".dmask.pgm")
+
+        try:
+            mask_array = _normalize_to_dtype(_read_pgm_mask(mask_path), dtype)
+        except FileNotFoundError:
+            mask_array = None
+
         return (filename.split('/')[-1], image_array, mask_array, metadata_dict)
     except FileNotFoundError:
         return None

@@ -11,8 +11,8 @@ import numpy as np
 from PIL import Image
 from nicegui import ui
 from nicegui.events import MouseEventArguments
-from mask_utils import pixel_colour, remove_pixel, merge_mask, grow_mask, shrink_mask, split_connected
-from data_saver import DatasetSaver
+from .mask_utils import pixel_colour, remove_pixel, merge_mask, grow_mask, shrink_mask, split_connected
+from .data_saver import DatasetSaver
 
 # TODO: add toggle to only load files not already handled to avoid repeated clicking through correct images.
 # This should be done once per instance to still allow users to replace previous incorrect labels.
