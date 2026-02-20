@@ -1,13 +1,14 @@
 """Dataset Editor page — interactive mask editing for image datasets."""
 
+from pathlib import Path
+
+import numpy as np
 from nicegui import ui
 from nicegui.events import KeyEventArguments
-from pathlib import Path
-import numpy as np
 
-from toolbox.data_editor import DatasetEditor
-from src.layout import page_layout
 from src.components.local_dir_picker import LocalDirectoryPicker
+from src.layout import page_layout
+from toolbox.data_editor import DatasetEditor
 
 
 @ui.page("/editor")
@@ -74,8 +75,12 @@ def editor_page():
                     editor.nav_label = ui.label("No dataset loaded")
 
                     with ui.row().classes("w-full gap-2"):
-                        ui.button("◀ Prev", on_click=lambda: editor.navigate(-1)).classes("flex-1")
-                        ui.button("Next ▶", on_click=lambda: editor.navigate(1)).classes("flex-1")
+                        ui.button(
+                            "◀ Prev", on_click=lambda: editor.navigate(-1)
+                        ).classes("flex-1")
+                        ui.button(
+                            "Next ▶", on_click=lambda: editor.navigate(1)
+                        ).classes("flex-1")
 
                     ui.separator()
 
@@ -95,7 +100,9 @@ def editor_page():
 
             # Main content area
             with splitter.after:
-                with ui.column().classes("w-full h-full items-center justify-center p-4"):
+                with ui.column().classes(
+                    "w-full h-full items-center justify-center p-4"
+                ):
                     placeholder = np.zeros((256, 256, 3), dtype=np.uint8)
                     b64 = editor.array_to_base64(placeholder)
 
