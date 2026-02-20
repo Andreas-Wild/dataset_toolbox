@@ -32,3 +32,12 @@ def home_page():
                         ui.label("Browse legacy OME-TIFF images with mask overlays.").classes(
                             "text-sm text-gray-400 text-center"
                         )
+                with ui.card().on("click", lambda: ui.navigate.to("/converter")).classes(
+                    "cursor-pointer hover:shadow-lg"
+                ):
+                    with ui.column().classes("items-center p-4 gap-2"):
+                        ui.icon("visibility", size="xl")
+                        ui.label("Dataset Converter").classes("text-lg font-semibold")
+                        ui.label("Convert `.ome.tif` file to png").classes(
+                            "text-sm text-gray-400 text-center"
+                        )
