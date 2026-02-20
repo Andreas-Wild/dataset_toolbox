@@ -12,7 +12,11 @@ wheels/
 # Ignore all images from git and optional data folder
 data
 *.png
+*.ome.tif
+*.dmask.pgm
 
 # Also ignore metadata
 metadata.json
-test_output
+
+# Ignore devcontainer
+.devcontainer
