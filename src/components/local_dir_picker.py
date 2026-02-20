@@ -28,12 +28,12 @@ class LocalDirectoryPicker(ui.dialog):
         with self, ui.card().classes("w-96"):
             ui.label(title).classes("text-lg font-semibold")
             self.path_display = ui.label(str(self.path)).classes(
-                "text-xs text-gray-500 break-all"
+                "text-l font-bold break-all"
             )
             self.dir_list = ui.scroll_area().classes("w-full border rounded")
             self.dir_list.style("height: 300px")
 
-            with ui.row().classes("w-full justify-end gap-2"):
+            with ui.row().classes("w-full justify-between gap-2"):
                 ui.button("Cancel", on_click=self.close).props("flat")
                 ui.button("Select", on_click=self._select).props("color=primary")
 
@@ -49,7 +49,7 @@ class LocalDirectoryPicker(ui.dialog):
                 with ui.item_section().props("avatar"):
                     ui.icon("folder", color="amber")
                 with ui.item_section():
-                    ui.item_label("..")
+                    ui.item_label(text="⟵ Go Back")
 
             ui.separator()
 

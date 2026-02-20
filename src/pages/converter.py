@@ -1,49 +1,62 @@
 """Converter page — a page dedicated to converting .ome.tif directories to png images.."""
-from nicegui.elements.input import Input
-from pathlib import Path
 
 from nicegui import ui
+from nicegui.elements.label import Label
 
-from src.layout import page_layout
+from src.components.list_dir import ListDir
 from src.components.local_dir_picker import LocalDirectoryPicker
+from src.layout import page_layout
 
 
 @ui.page("/converter")
 def converter_page():
     with page_layout("Data Converter"):
-        async def pick_data_dir():
-            result = await LocalDirectoryPicker(
-                directory=data_input.value or "~",
-                title="Select Data Directory",
-            )
-            if result:
-                data_input.value = result
-        with ui.column().classes("w-full items-center justify-center p-8 gap-8"):
-            ui.label("Dataset Converter").classes("text-4xl font-bold")
+        main_container = ui.column(wrap=False).classes("w-full h-full border")
+        with main_container:
+            with ui.row().classes("w-full border justify-center"):
+                ui.label("Progress Bar Here")
+            with ui.column().classes("w-full border items-center"):
+                ui.label("Data colums here")
+                with ui.splitter(value=50, limits=(25, 75)).classes(
+                    "w-full"
+                ) as splitter:
+                    with splitter.before:
+                        # Here we need to create a callback to pick directories.
+                        async def pick_data_dir(label: Label, table: ListDir):
+                            result = await LocalDirectoryPicker(
+                                directory=label.text or "~",
+                                title="Select Data Directory",
+                            )
+                            if result:
+                                label.set_text(result)
+                                table.load(result)
 
-            with ui.row().classes("m-4 items-center gap-2 w-full"):
-                data_input: Input = ui.input("Data Path", placeholder="Click the 📁 to pick a directory.").classes("w-64")
-                ui.button(icon="📁", on_click=pick_data_dir).props(
-                    "flat dense"
-                ).tooltip("Browse…")
-            with ui.row().classes("m-4 items-center gap-2 w-full"):
-                ls_dir = ui.markdown("")
-                ls_dir.set_visibility(False)
-                
-            def on_path_change(e):
-                data_path = Path(e.value)
-                if data_path.is_dir():
-                    num_tif_files = len([f for f in data_path.rglob("*.ome.tif")])
-                    num_mask_files = len([f for f in data_path.rglob("*.dmask.pgm")])
-                    ls_dir.set_content(f"""
-                    Directory {data_input.value}: \n
-                        - Found {num_tif_files} .ome.tif files \n
-                        - Found {num_mask_files} .dmask.pgm files
-                    """)
-                    ls_dir.set_visibility(True)
-                else:
-                    ls_dir.set_visibility(False)
-
-
-        data_input.on_value_change(on_path_change)
-
+                        with ui.column().classes("w-full items-center justify-center"):
+                            with ui.row().classes("gap-2 justify-center items-center"):
+                                ui.button(
+                                    text="Input Path",
+                                    icon="folder",
+                                    on_click=lambda label: pick_data_dir(
+                                        data_input_label, input_table
+                                    ),
+                                ).props("flat dense").tooltip("Browse…")
+                                data_input_label = ui.label(
+                                    "No directory selected"
+                                ).classes("text-m text-gray-500")
+                                # List a directory as a table, initially empty
+                                input_table = ListDir()
+                    with splitter.after:
+                        with ui.column().classes("w-full items-center justify-center"):
+                            with ui.row().classes("gap-2 justify-center items-center"):
+                                ui.button(
+                                    text="Output Path",
+                                    icon="folder",
+                                    on_click=lambda label: pick_data_dir(
+                                        data_output_label, output_table
+                                    ),
+                                ).props("flat dense").tooltip("Browse…")
+                                data_output_label = ui.label(
+                                    "No directory selected"
+                                ).classes("text-m text-gray-500")
+                                # List a directory as a table, initially empty
+                                output_table = ListDir()
