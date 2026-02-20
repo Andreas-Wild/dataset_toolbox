@@ -75,3 +75,4 @@ class ListDir(ui.table):
         self.rows.clear()
         self.rows.extend(rows)
         self.update()
+        self.set_visibility(True)
