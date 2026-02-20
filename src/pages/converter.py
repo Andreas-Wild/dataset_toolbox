@@ -8,12 +8,19 @@ from src.components.local_dir_picker import LocalDirectoryPicker
 from src.layout import page_layout
 
 
+async def convert_images():
+    pass
+
+
 @ui.page("/converter")
 def converter_page():
     with page_layout("Data Converter"):
         main_container = ui.column(wrap=False).classes("w-full h-full border")
         with main_container:
-            with ui.row().classes("w-full border justify-center"):
+            with ui.column().classes("w-full border justify-center items-center"):
+                ui.button(icon="swap_horizontal_circle", text="Convert").classes(
+                    "text-xl icon-xl hover:animate-pulse"
+                )
                 ui.label("Progress Bar Here")
             with ui.column().classes("w-full border items-center"):
                 ui.label("Data colums here")
