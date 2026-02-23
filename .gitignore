@@ -18,5 +18,6 @@ data
 # Also ignore metadata
 metadata.json
 
-# Ignore devcontainer
+# Ignore devcontainer and nicegui storage
 .devcontainer
+.nicegui
