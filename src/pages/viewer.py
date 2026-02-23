@@ -60,9 +60,6 @@ def viewer_page():
                         with ui.expansion("Metadata").classes("w-full"):
                             ui.json_editor({"content": {"json": metadata}})
 
-    def load_viewer():
-        """Instantiate the viewer from the provided data path."""
-
     def show_next():
         state["batch"] = _get_next_batch()
         render_batch()
@@ -72,7 +69,7 @@ def viewer_page():
         overlay_btn.props(f"color={'primary' if state['show_overlay'] else 'grey'}")
         render_batch()
 
-    with page_layout("OME TIFF Viewer"):
+    with page_layout("OME TIFF Viewer", PAGE_HELP):
 
         async def pick_data_dir(label: Label):
             result = await LocalDirectoryPicker(
