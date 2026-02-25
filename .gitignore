@@ -11,6 +11,7 @@ wheels/
 
 # Ignore all images from git and optional data folder
 data
+output
 *.png
 *.ome.tif
 *.dmask.pgm
@@ -18,5 +19,6 @@ data
 # Also ignore metadata
 metadata.json
 
-# Ignore devcontainer
+# Ignore devcontainer and nicegui storage
 .devcontainer
+.nicegui

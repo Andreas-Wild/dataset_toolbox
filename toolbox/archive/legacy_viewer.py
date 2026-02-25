@@ -1,24 +1,26 @@
 """The legacy_viewer class is used to handle IDEAS' legacy .ome.tiff file format and rewrite it into a modern schema.
-    Primary improvements include:
-    - Update outdated xml schema.
-    - Rewrite multiple single channel images into a single multi channel file."""
+Primary improvements include:
+- Update outdated xml schema.
+"""
 
+import logging
 import os
-import numpy as np
-import tifffile
+import warnings
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Generator
-from concurrent.futures import ProcessPoolExecutor, as_completed
+
+import numpy as np
+import tifffile
 from rich import print
-import warnings
-import logging
 
 # Suppress tifffile warnings for malformed legacy TIFF files
-warnings.filterwarnings('ignore', module='tifffile')
-logging.getLogger('tifffile').setLevel(logging.ERROR)
+warnings.filterwarnings("ignore", module="tifffile")
+logging.getLogger("tifffile").setLevel(logging.ERROR)
 
 
 # ── Module-level helpers (must be picklable for ProcessPoolExecutor) ──────────
+
 
 def _normalize_to_dtype(image: np.ndarray, dtype) -> np.ndarray:
     """Normalize an image array to the target dtype's range.
@@ -33,27 +35,31 @@ def _normalize_to_dtype(image: np.ndarray, dtype) -> np.ndarray:
     target_info = np.iinfo(dtype)
     img_min, img_max = float(image.min()), float(image.max())
     if img_max > img_min:
-        scaled = (image.astype(np.float64) - img_min) / (img_max - img_min) * target_info.max
+        scaled = (
+            (image.astype(np.float64) - img_min) / (img_max - img_min) * target_info.max
+        )
         return scaled.astype(dtype)
     return np.zeros_like(image, dtype=dtype)
 
 
 def _read_pgm_mask(file_path: str) -> np.ndarray:
     """Read a PGM (P2 ASCII format) mask file and return as numpy array."""
-    with open(file_path, 'r') as f:
+    with open(file_path, "r") as f:
         magic = f.readline().strip()
-        if magic != 'P2':
+        if magic != "P2":
             raise ValueError(f"Unsupported PGM format: {magic}")
         line = f.readline()
-        while line.startswith('#'):
+        while line.startswith("#"):
             line = f.readline()
         width, height = map(int, line.split())
         max_val = int(f.readline())
-        data = np.fromstring(f.read(), dtype=np.uint8, sep=' ')
+        data = np.fromstring(f.read(), dtype=np.uint8, sep=" ")
     return data.reshape((height, width))
 
 
-def _read_channel(file_path: str, channel: str, dtype) -> tuple[str, np.ndarray, np.ndarray, dict] | None:
+def _read_channel(
+    file_path: str, channel: str, dtype
+) -> tuple[str, np.ndarray, np.ndarray | None, dict] | None:
     """Read a single channel's image, mask, and metadata. Returns None on failure."""
     try:
         filename = file_path + channel + ".ome.tif"
@@ -64,14 +70,16 @@ def _read_channel(file_path: str, channel: str, dtype) -> tuple[str, np.ndarray,
         # Look for mask in an ExportedMasks/ sibling folder
         base_dir = str(Path(file_path).parent)
         base_name = Path(file_path).name
-        mask_path = os.path.join(base_dir, "ExportedMasks", base_name + channel + ".dmask.pgm")
+        mask_path = os.path.join(
+            base_dir, "ExportedMasks", base_name + channel + ".dmask.pgm"
+        )
 
         try:
             mask_array = _normalize_to_dtype(_read_pgm_mask(mask_path), dtype)
         except FileNotFoundError:
             mask_array = None
 
-        return (filename.split('/')[-1], image_array, mask_array, metadata_dict)
+        return (filename.split("/")[-1], image_array, mask_array, metadata_dict)
     except FileNotFoundError:
         return None
     except Exception as e:
@@ -79,20 +87,27 @@ def _read_channel(file_path: str, channel: str, dtype) -> tuple[str, np.ndarray,
         return None
 
 
-class LegacyViewer():
+class LegacyViewer:
     """The LegacyViewer class transforms old OMETIF file format images into new file formats.
     Input:
     - input_dir: str | Path
-    - should_save: bool = False
     - output_dir: str | Path | None = None
-    - combine_ch: bool = True
     Output:
-    - None """
-    def __init__(self, input_dir: str|Path, should_save:bool = False, output_dir: str|Path|None = None, combine_ch: bool = True):
+    - None"""
+
+    def __init__(
+        self,
+        input_dir: str | Path,
+        should_save: bool = False,
+        output_dir: str | Path | None = None,
+        combine_ch: bool = True,
+    ):
         # Set all state variables
         self.input_dir: Path = Path(input_dir)
         self.should_save: bool = should_save
-        self.output_dir: Path|None = Path(output_dir) if output_dir is not None else None
+        self.output_dir: Path | None = (
+            Path(output_dir) if output_dir is not None else None
+        )
         self.combine_ch: bool = combine_ch
         self.filename_generator: Generator[str] = self._iterdir()
 
@@ -100,10 +115,12 @@ class LegacyViewer():
         for filename in Path.glob(self.input_dir, pattern=pattern):
             yield str(filename).removesuffix("_Ch1.ome.tif")
 
-    def get_image_channels(self, dtype:np.uint8|np.uint16=np.uint8, max_workers:int|None=None) -> Generator[list[tuple[str, np.ndarray, np.ndarray, dict]]]:
+    def get_image_channels(
+        self, dtype: np.uint8 | np.uint16 = np.uint8, max_workers: int | None = None
+    ) -> Generator[list[tuple[str, np.ndarray, np.ndarray, dict]]]:
         """Return the different image channels with their calculated default mask.
         Returns a generator that yields all image channels per base filename.
-        
+
         Args:
             dtype: Output array dtype (np.uint8 or np.uint16).
             max_workers: Number of processes for parallel work. Defaults to CPU count.
