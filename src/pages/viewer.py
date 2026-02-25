@@ -1,54 +1,58 @@
-"""OME TIFF Viewer page — browse Viewer OME-TIFF images with optional mask overlay."""
+"""OME TIFF Viewer page — browse OME-TIFF images with optional mask overlay."""
 
 from nicegui import ui
 from nicegui.elements.label import Label
 
 from src.components.local_dir_picker import LocalDirectoryPicker
 from src.layout import page_layout
-from toolbox.mask_utils import array_to_base64, overlay
-from toolbox.ome_tif.legacy_viewer import LegacyViewer
+from toolbox.ome_converter import OMEConverter
+from toolbox.utilities import array_to_base64, overlay
 
 PIXELATED_STYLE = "image-rendering: pixelated; max-height: 70vh;"
 PAGE_HELP = """
-The OME TIF viewer can be used to view ome.tif images with their respective default masks. may be used to convert files from `.ome.tif` to `png`.
+The OME TIF viewer can be used to view ome.tif images with their respective default masks.
 
 - Set the input path. The target directory should contain an Exported Masks folder with all the .ome.tif files.
-- Cycle through the images and view.
+- Cycle through the images using Previous / Next and view.
 
 """
 
 
 @ui.page("/viewer")
 def viewer_page():
-    # Per-session state — the viewer and generator are created when the user
-    # provides a data path and clicks "Load".
     state: dict = {
-        "batch": None,
         "show_overlay": False,
-        "viewer": None,
-        "image_channels": None,
+        "converter": None,
+        "index": 0,
     }
 
-    def _get_next_batch():
-        """Get the next list of (filename, image_array, mask_array, metadata) tuples."""
-        if state["image_channels"] is None:
-            return None
-        try:
-            return next(state["image_channels"])
-        except StopIteration:
-            return None
+    def on_slider_change(e):
+        state["index"] = int(e.value)
+        render()
 
-    def render_batch():
-        """Render the current batch, respecting the overlay toggle."""
+    def render():
+        """Load and render channels for the current index."""
         grid_container.clear()
-        batch = state["batch"]
-        if batch is None:
+        converter: OMEConverter | None = state["converter"]
+        if converter is None or not converter.filenames:
             with grid_container:
-                ui.label("No more images.").classes("text-h5")
+                ui.label("No images loaded.").classes("text-h5")
             return
+
+        idx = state["index"]
+        slider.set_value(idx)
+        channels = converter.load_channels(idx)
+        if not channels:
+            with grid_container:
+                ui.label("Could not load image.").classes("text-h5")
+            return
+
         with grid_container:
-            with ui.grid(columns=len(batch)).classes("w-full gap-4 p-4"):
-                for filename, image_array, mask_array, metadata in batch:
+            ui.label(f"Image {idx + 1} / {len(converter.filenames)}").classes(
+                "text-subtitle1 p-2"
+            )
+            with ui.grid(columns=len(channels)).classes("w-full gap-4 p-4"):
+                for filename, image_array, mask_array, metadata in channels:
                     with ui.card().tight():
                         ui.label(filename).classes("p-2 font-bold")
                         if state["show_overlay"] and mask_array is not None:
@@ -61,13 +65,20 @@ def viewer_page():
                             ui.json_editor({"content": {"json": metadata}})
 
     def show_next():
-        state["batch"] = _get_next_batch()
-        render_batch()
+        converter: OMEConverter | None = state["converter"]
+        if converter and state["index"] < len(converter.filenames) - 1:
+            state["index"] += 1
+            render()
+
+    def show_prev():
+        if state["index"] > 0:
+            state["index"] -= 1
+            render()
 
     def toggle_overlay():
         state["show_overlay"] = not state["show_overlay"]
         overlay_btn.props(f"color={'primary' if state['show_overlay'] else 'grey'}")
-        render_batch()
+        render()
 
     with page_layout("OME TIFF Viewer", PAGE_HELP):
 
@@ -80,9 +91,12 @@ def viewer_page():
                 label.set_text(result)
                 data_path = label.text.strip()
                 try:
-                    state["viewer"] = LegacyViewer(data_path)
-                    state["image_channels"] = state["viewer"].get_image_channels()
-                    show_next()
+                    state["converter"] = OMEConverter(input_path=data_path)
+                    state["index"] = 0
+                    slider._props["max"] = max(len(state["converter"].filenames) - 1, 0)
+                    slider.set_value(0)
+                    slider.update()
+                    render()
                     ui.notify(f"Loaded data from {data_path}", type="positive")
                 except Exception as exc:
                     ui.notify(f"Error loading data: {exc}", type="negative")
@@ -98,9 +112,15 @@ def viewer_page():
                     "text-m text-gray-500"
                 )
             with ui.row():
-                ui.button("Next Image", on_click=show_next)
+                ui.button("Previous", icon="arrow_back", on_click=show_prev)
+                ui.button("Next", icon="arrow_forward", on_click=show_next)
                 overlay_btn = ui.button(
                     "Toggle Mask Overlay", on_click=toggle_overlay, color="grey"
                 )
+            slider = (
+                ui.slider(min=0, max=0, step=1, on_change=on_slider_change)
+                .props("label-always")
+                .classes("w-full max-w-lg")
+            )
 
         grid_container = ui.element("div").classes("w-full")

@@ -8,7 +8,8 @@ from nicegui.events import KeyEventArguments
 
 from src.components.local_dir_picker import LocalDirectoryPicker
 from src.layout import page_layout
-from toolbox.data_editor import DatasetEditor
+
+# from toolbox.data_editor import DatasetEditor
 
 
 @ui.page("/editor")

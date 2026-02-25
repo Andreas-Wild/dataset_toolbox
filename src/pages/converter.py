@@ -8,7 +8,7 @@ from nicegui.elements.label import Label
 from src.components.list_dir import ListDir
 from src.components.local_dir_picker import LocalDirectoryPicker
 from src.layout import page_layout
-from toolbox.data_converter import OMEConverter
+from toolbox.ome_converter import OMEConverter
 
 PAGE_HELP = """
 The Data Converter may be used to convert files from `.ome.tif` to `png`. Set the input directory and output directory by clicking on the respective '🗀' icon.
