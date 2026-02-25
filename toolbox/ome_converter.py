@@ -111,9 +111,9 @@ def _write_channel_output(
         cv2.imwrite(
             str(
                 output
-                / "masks"
+                / "default_masks"
                 / channel_dir
-                / filename.replace(".ome.tif", "_mask.png")
+                / filename.replace(".ome.tif", ".png")
             ),
             mask_array,
             [cv2.IMWRITE_PNG_COMPRESSION, 1],
@@ -160,7 +160,7 @@ class OMEConverter:
 
     def _create_dirs(self):
         if self.output_path is not None:
-            for subdir in ["images", "masks", "metadata"]:
+            for subdir in ["images", "default_masks", "metadata"]:
                 for ch in self.channel_numbers:
                     self.output_path.joinpath(subdir, f"channel_{ch}").mkdir(
                         parents=True, exist_ok=True

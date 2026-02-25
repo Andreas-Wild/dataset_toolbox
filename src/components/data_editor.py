@@ -1,5 +1,5 @@
 """This module provides a NiceGUI web app to interactively edit masks. The DatasetEditor class may be imported, and pointed to an arbitrary dataset location,
-provided that the location contains a 'images' and 'masks' directory and a 'metadata.json' file. Note that the class may only be initialised inside a nicegui.ui context.
+provided that the location contains a 'masks' directory and an 'image_source.txt' file pointing to the source images. Note that the class may only be initialised inside a nicegui.ui context.
 The class allows users to add/remove pixels, grow/shrink masks, merge/separate nearby masks, undo edits and save the result to a new dataset."""
 
 from pathlib import Path
@@ -28,19 +28,33 @@ class DatasetEditor:
         self.saver: Optional[DatasetSaver]  = None
 
     def load_dataset(self) -> int:
-        """Load all images and masks from dataset."""
-        image_dir = self.dataset_path / "images"
+        """Load all images and masks from dataset.
+
+        Reads image_source.txt to locate the source images directory,
+        then pairs each mask in masks/ with its corresponding source image.
+        """
         mask_dir = self.dataset_path / "masks"
+        source_file = self.dataset_path / "image_source.txt"
+
+        if not source_file.exists():
+            ui.notify("No image_source.txt found in dataset path", type="negative")
+            return 0
+
+        image_dir = Path(source_file.read_text().strip())
+        if not image_dir.is_dir():
+            ui.notify(f"Image source not found: {image_dir}", type="negative")
+            return 0
 
         self.samples = []
-        for file in sorted(image_dir.glob("*.png")):
-            filename = file.name
+        for mask_file in sorted(mask_dir.glob("*.png")):
+            filename = mask_file.name
+            image_file = image_dir / filename
             try:
-                img = np.asarray(Image.open(image_dir / filename))
-                mask = np.asarray(Image.open(mask_dir / filename))
+                img = np.asarray(Image.open(image_file))
+                mask = np.asarray(Image.open(mask_file))
                 self.samples.append((filename, img, mask))
             except FileNotFoundError:
-                ui.notify(f"Missing mask for: {filename}", type="warning")
+                ui.notify(f"Missing image for: {filename}", type="warning")
 
         if self.samples:
             self.current_index = 0
