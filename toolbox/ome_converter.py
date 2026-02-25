@@ -1,6 +1,7 @@
 """This class is used to convert .ome.tif images with their accompanying .dmask.pgm file to png images.
 The images are also conveniently grouped by channel number."""
 
+import argparse
 import json
 import logging
 import re
@@ -82,7 +83,6 @@ def _read_channel(
         mask_path = channel_path.parent / "ExportedMasks" / mask_name
 
         try:
-            print(mask_path)
             mask_array = _normalize_to_dtype(_read_pgm_mask(str(mask_path)), dtype)
         except FileNotFoundError:
             mask_array = None
@@ -196,7 +196,14 @@ class OMEConverter:
 
 
 if __name__ == "__main__":
-    converter = OMEConverter(
-        input_path="~/code/masters/data/test/raw/Buffy_Coat", output_path="./output/"
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "input_path",
+        help="Path to the input directory. Should contain .ome.tif files and ExportedMasks directory.",
     )
+    parser.add_argument("output_path", help="Path to the output directory")
+    args = parser.parse_args()
+    # Create converter object
+    converter = OMEConverter(input_path=args.input_path, output_path=args.output_path)
+    # Convert the images
     converter.convert()
