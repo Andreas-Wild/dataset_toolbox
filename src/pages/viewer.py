@@ -1,4 +1,4 @@
-"""OME TIFF Viewer page — browse legacy OME-TIFF images with optional mask overlay."""
+"""OME TIFF Viewer page — browse Viewer OME-TIFF images with optional mask overlay."""
 
 from nicegui import ui
 from nicegui.elements.label import Label

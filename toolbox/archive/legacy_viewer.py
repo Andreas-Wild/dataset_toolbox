@@ -59,7 +59,7 @@ def _read_pgm_mask(file_path: str) -> np.ndarray:
 
 def _read_channel(
     file_path: str, channel: str, dtype
-) -> tuple[str, np.ndarray, np.ndarray, dict] | None:
+) -> tuple[str, np.ndarray, np.ndarray | None, dict] | None:
     """Read a single channel's image, mask, and metadata. Returns None on failure."""
     try:
         filename = file_path + channel + ".ome.tif"
