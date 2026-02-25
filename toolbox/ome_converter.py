@@ -143,9 +143,11 @@ class OMEConverter:
         # Get the channel numbers once on init
         self.channel_numbers: list[int] = self._find_channel_numbers()
         # Build a sorted list of base filenames (one per image, using the first channel)
-        self.filenames: list[Path] = sorted(
-            self.input_path.glob(f"*Ch{self.channel_numbers[0]}.ome.tif")
-        ) if self.channel_numbers else []
+        self.filenames: list[Path] = (
+            sorted(self.input_path.glob(f"*Ch{self.channel_numbers[0]}.ome.tif"))
+            if self.channel_numbers
+            else []
+        )
 
     def _find_channel_numbers(self, n: int = 20) -> list[int]:
         """Scan first n input files to discover all unique channel numbers."""
@@ -157,11 +159,15 @@ class OMEConverter:
         return list(channel_numbers)
 
     def _create_dirs(self):
-        for subdir in ["images", "masks", "metadata"]:
-            for ch in self.channel_numbers:
-                self.output_path.joinpath(subdir, f"channel_{ch}").mkdir(
-                    parents=True, exist_ok=True
-                )
+        if self.output_path is not None:
+            for subdir in ["images", "masks", "metadata"]:
+                for ch in self.channel_numbers:
+                    self.output_path.joinpath(subdir, f"channel_{ch}").mkdir(
+                        parents=True, exist_ok=True
+                    )
+        else:
+            print("No output directory specified. Skipping directory creation...")
+            return
 
     def get_filenames(self) -> list[str]:
         """Return a list of base image names (one per image set, using the first channel)."""
