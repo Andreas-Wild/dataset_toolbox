@@ -6,10 +6,10 @@ import numpy as np
 from nicegui import ui
 from nicegui.events import KeyEventArguments
 
+from src.components.data_editor import DatasetEditor
 from src.components.local_dir_picker import LocalDirectoryPicker
 from src.layout import page_layout
-
-# from toolbox.data_editor import DatasetEditor
+from toolbox.utilities import array_to_base64
 
 
 @ui.page("/editor")
@@ -105,7 +105,7 @@ def editor_page():
                     "w-full h-full items-center justify-center p-4"
                 ):
                     placeholder = np.zeros((256, 256, 3), dtype=np.uint8)
-                    b64 = editor.array_to_base64(placeholder)
+                    b64 = array_to_base64(placeholder)
 
                     editor.interactive_image = ui.interactive_image(
                         source=f"data:image/png;base64,{b64}",

@@ -6,15 +6,6 @@ import numpy as np
 from PIL import Image
 from rich import print
 
-k = 10
-canvas = np.zeros((k, k), dtype=np.uint8)
-start, end, mask_id = (3, 8, 5)
-if end < start:
-    start, end = end, start
-canvas[start:end, start:end] = (
-    np.ones(canvas[start:end, start:end].shape, dtype=np.uint8) * mask_id
-)
-
 
 def grow_mask(mask: np.ndarray, mask_id: int | None = None) -> np.ndarray:
     """
@@ -219,10 +210,3 @@ def array_to_base64(arr: np.ndarray) -> str:
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
     return base64.b64encode(buffer.getvalue()).decode()
-
-
-if __name__ == "__main__":
-    print(canvas)
-    print("=" * 40)
-    growed = grow_mask(canvas, mask_id)
-    print(growed)
