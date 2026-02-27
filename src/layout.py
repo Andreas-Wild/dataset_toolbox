@@ -45,18 +45,22 @@ def page_layout(title: str, help_text: str | None = None):
         with ui.row().classes("gap-2"):
             ui.button(
                 "Editor", on_click=lambda: ui.navigate.to("/editor"), icon="edit"
-            ).props("flat color=white")
+            ).props("flat color=white").tooltip("Edit masks with fine-grained control.")
             ui.button(
                 "Viewer", on_click=lambda: ui.navigate.to("/viewer"), icon="visibility"
-            ).props("flat color=white")
+            ).props("flat color=white").tooltip(
+                "View `.ome.tif` images with their default masks."
+            )
             ui.button(
                 "Converter",
                 on_click=lambda: ui.navigate.to("/converter"),
                 icon="swap_horizontal_circle",
-            ).props("flat color=white")
+            ).props("flat color=white").tooltip(
+                "Convert `ome.tif` images to `png` and group them by channel."
+            )
             ui.button("Home", on_click=lambda: ui.navigate.to("/"), icon="home").props(
                 "flat color=white"
-            )
+            ).tooltip("Return home")
 
     # Yield control so the caller can add page-specific content
     yield

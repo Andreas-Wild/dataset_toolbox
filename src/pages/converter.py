@@ -83,7 +83,7 @@ def converter_page():
                     with splitter.before:
                         # Here we need to create a callback to pick directories.
                         async def pick_data_dir(label: Label, table: ListDir):
-                            result = await LocalDirectoryPicker(
+                            result: str = await LocalDirectoryPicker(
                                 directory=label.text or "~",
                                 title="Select Data Directory",
                             )
@@ -92,6 +92,14 @@ def converter_page():
                                 table.load(result)
                                 # Also we want to reset the progress bar to indicate that we have more to convert
                                 progress_bar.set_value(0)
+                            if data_output_label.text == "No directory selected":
+                                ui.notify(
+                                    "Auto-suggested output path. Double check this is correct!"
+                                )
+                                data_output_label.set_text(
+                                    result.replace("raw", "in_progress")
+                                )
+                                output_table.load(data_output_label.text)
 
                         with ui.column().classes("w-full items-center justify-center"):
                             with ui.row().classes("gap-2 justify-center items-center"):

@@ -4,62 +4,77 @@ from pathlib import Path
 
 import numpy as np
 from nicegui import ui
+from nicegui.elements.label import Label
 from nicegui.events import KeyEventArguments
 
+from src.components.data_editor import DatasetEditor
 from src.components.local_dir_picker import LocalDirectoryPicker
 from src.layout import page_layout
+from toolbox.utilities import array_to_base64
 
-# from toolbox.data_editor import DatasetEditor
+PAGE_HELP = """
+The Image Dataset Editor page can be used to edit masks at the pixel level. This allows the user to have very fine-grained control over the final masks thee use for training.
+There are a wide array of tools that the user may use to edit the masks.
+
+**Getting started**:
+
+- Set the 'INPUT PATH' to the masks you want to edit. This folder should contain:
+    1. An `image_source.txt` file that points to the image source.
+    2. A `masks` folder with png images of masks.
+    3. A `JSON` file containing all the label studio annotations
+- If your folder does not yet look like this use the RLE Converter tool **first**.
+- A suggested 'OUTPUT PATH' will automatically be set. Be sure to double check this is the correct location.
+"""
 
 
 @ui.page("/editor")
 def editor_page():
     editor = DatasetEditor()
 
-    with page_layout("Image Dataset Editor"):
+    with page_layout("Image Dataset Editor", help_text=PAGE_HELP):
         with ui.splitter(value=20, limits=(0, 30)).classes("w-full h-full") as splitter:
             # Sidebar
             with splitter.before:
                 with ui.column().classes("p-4 gap-4 w-full"):
                     ui.label("Dataset Paths").classes("text-lg font-semibold")
 
-                    async def pick_input_dir():
-                        result = await LocalDirectoryPicker(
-                            directory=input_path.value or "~",
-                            title="Select Input Directory",
+                    async def pick_data_dir(label: Label):
+                        result: str = await LocalDirectoryPicker(
+                            directory=label.text or "~",
+                            title="Select Data Directory",
                         )
                         if result:
-                            input_path.value = result
+                            label.set_text(result)
 
-                    async def pick_output_dir():
-                        result = await LocalDirectoryPicker(
-                            directory=output_path.value or "~",
-                            title="Select Output Directory",
+                        # Set the output path to the same input path but replace 'annotations' with 'completed' if there is no output yet
+                        if data_output_label.text == "No directory selected":
+                            data_output_label.set_text(
+                                result.replace("annotations", "complete")
+                            )
+
+                    with ui.row().classes("w-full items-end gap-1"):
+                        ui.button(
+                            text="Input Path",
+                            icon="folder",
+                            on_click=lambda label: pick_data_dir(data_input_label),
+                        ).props("flat dense").tooltip("Select Input")
+                        data_input_label = ui.label("No directory selected").classes(
+                            "text-m text-gray-500"
                         )
-                        if result:
-                            output_path.value = result
 
                     with ui.row().classes("w-full items-end gap-1"):
-                        input_path = ui.input(
-                            "Input Path",
-                            value=str(editor.dataset_path),
-                        ).classes("flex-grow")
-                        ui.button(icon="folder", on_click=pick_input_dir).props(
-                            "flat dense"
-                        ).tooltip("Browse…")
-
-                    with ui.row().classes("w-full items-end gap-1"):
-                        output_path = ui.input(
-                            "Output Path",
-                            value=str(editor.output_path),
-                        ).classes("flex-grow")
-                        ui.button(icon="folder", on_click=pick_output_dir).props(
-                            "flat dense"
-                        ).tooltip("Browse…")
+                        ui.button(
+                            text="Ouput Path",
+                            icon="folder",
+                            on_click=lambda label: pick_data_dir(data_output_label),
+                        ).props("flat dense").tooltip("Select Output")
+                        data_output_label = ui.label("No directory selected").classes(
+                            "text-m text-gray-500"
+                        )
 
                     def load_dataset():
-                        editor.dataset_path = Path(input_path.value)
-                        editor.output_path = Path(output_path.value)
+                        editor.dataset_path = Path(data_input_label.text)
+                        editor.output_path = Path(data_output_label.text)
                         count = editor.load_dataset()
                         if count > 0:
                             ui.notify(f"Loaded {count} images", type="positive")
@@ -105,7 +120,7 @@ def editor_page():
                     "w-full h-full items-center justify-center p-4"
                 ):
                     placeholder = np.zeros((256, 256, 3), dtype=np.uint8)
-                    b64 = editor.array_to_base64(placeholder)
+                    b64 = array_to_base64(placeholder)
 
                     editor.interactive_image = ui.interactive_image(
                         source=f"data:image/png;base64,{b64}",
