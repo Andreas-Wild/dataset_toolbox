@@ -25,13 +25,13 @@ class LocalDirectoryPicker(ui.dialog):
             self.path = Path.home()
         self.show_hidden = show_hidden
 
-        with self, ui.card().classes("w-96"):
+        with self, ui.card().classes("size-128"):
             ui.label(title).classes("text-lg font-semibold")
             self.path_display = ui.label(str(self.path)).classes(
                 "text-l font-bold break-all"
             )
             self.dir_list = ui.scroll_area().classes("w-full border rounded")
-            self.dir_list.style("height: 300px")
+            self.dir_list.style("height: 500px")
 
             with ui.row().classes("w-full justify-between gap-2"):
                 ui.button("Cancel", on_click=self.close).props("flat")

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 from nicegui import ui
+from nicegui.elements.label import Label
 from nicegui.events import KeyEventArguments
 
 from src.components.data_editor import DatasetEditor
@@ -23,43 +24,43 @@ def editor_page():
                 with ui.column().classes("p-4 gap-4 w-full"):
                     ui.label("Dataset Paths").classes("text-lg font-semibold")
 
-                    async def pick_input_dir():
-                        result = await LocalDirectoryPicker(
-                            directory=input_path.value or "~",
-                            title="Select Input Directory",
+                    async def pick_data_dir(label: Label):
+                        result: str = await LocalDirectoryPicker(
+                            directory=label.text or "~",
+                            title="Select Data Directory",
                         )
                         if result:
-                            input_path.value = result
+                            label.set_text(result)
 
-                    async def pick_output_dir():
-                        result = await LocalDirectoryPicker(
-                            directory=output_path.value or "~",
-                            title="Select Output Directory",
+                        # Set the output path to the same input path but replace 'annotations' with 'completed' if there is no output yet
+                        if data_output_label.text == "No directory selected":
+                            data_output_label.set_text(
+                                result.replace("annotations", "complete")
+                            )
+
+                    with ui.row().classes("w-full items-end gap-1"):
+                        ui.button(
+                            text="Input Path",
+                            icon="folder",
+                            on_click=lambda label: pick_data_dir(data_input_label),
+                        ).props("flat dense").tooltip("Select Input")
+                        data_input_label = ui.label("No directory selected").classes(
+                            "text-m text-gray-500"
                         )
-                        if result:
-                            output_path.value = result
 
                     with ui.row().classes("w-full items-end gap-1"):
-                        input_path = ui.input(
-                            "Input Path",
-                            value=str(editor.dataset_path),
-                        ).classes("flex-grow")
-                        ui.button(icon="folder", on_click=pick_input_dir).props(
-                            "flat dense"
-                        ).tooltip("Browse…")
-
-                    with ui.row().classes("w-full items-end gap-1"):
-                        output_path = ui.input(
-                            "Output Path",
-                            value=str(editor.output_path),
-                        ).classes("flex-grow")
-                        ui.button(icon="folder", on_click=pick_output_dir).props(
-                            "flat dense"
-                        ).tooltip("Browse…")
+                        ui.button(
+                            text="Ouput Path",
+                            icon="folder",
+                            on_click=lambda label: pick_data_dir(data_output_label),
+                        ).props("flat dense").tooltip("Select Output")
+                        data_output_label = ui.label("No directory selected").classes(
+                            "text-m text-gray-500"
+                        )
 
                     def load_dataset():
-                        editor.dataset_path = Path(input_path.value)
-                        editor.output_path = Path(output_path.value)
+                        editor.dataset_path = Path(data_input_label.text)
+                        editor.output_path = Path(data_output_label.text)
                         count = editor.load_dataset()
                         if count > 0:
                             ui.notify(f"Loaded {count} images", type="positive")
