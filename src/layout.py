@@ -52,7 +52,14 @@ def page_layout(title: str, help_text: str | None = None):
                 "View `.ome.tif` images with their default masks."
             )
             ui.button(
-                "Converter",
+                "RLE Converter",
+                on_click=lambda: ui.navigate.to("/rleconverter"),
+                icon="change_circle",
+            ).props("flat color=white").tooltip(
+                "Convert Label Studio `RLE` masks to `png` image masks."
+            )
+            ui.button(
+                "OME Converter",
                 on_click=lambda: ui.navigate.to("/converter"),
                 icon="swap_horizontal_circle",
             ).props("flat color=white").tooltip(
