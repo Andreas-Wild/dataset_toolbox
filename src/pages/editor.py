@@ -12,12 +12,26 @@ from src.components.local_dir_picker import LocalDirectoryPicker
 from src.layout import page_layout
 from toolbox.utilities import array_to_base64
 
+PAGE_HELP = """
+The Image Dataset Editor page can be used to edit masks at the pixel level. This allows the user to have very fine-grained control over the final masks thee use for training.
+There are a wide array of tools that the user may use to edit the masks.
+
+**Getting started**:
+
+- Set the 'INPUT PATH' to the masks you want to edit. This folder should contain:
+    1. An `image_source.txt` file that points to the image source.
+    2. A `masks` folder with png images of masks.
+    3. A `JSON` file containing all the label studio annotations
+- If your folder does not yet look like this use the RLE Converter tool **first**.
+- A suggested 'OUTPUT PATH' will automatically be set. Be sure to double check this is the correct location.
+"""
+
 
 @ui.page("/editor")
 def editor_page():
     editor = DatasetEditor()
 
-    with page_layout("Image Dataset Editor"):
+    with page_layout("Image Dataset Editor", help_text=PAGE_HELP):
         with ui.splitter(value=20, limits=(0, 30)).classes("w-full h-full") as splitter:
             # Sidebar
             with splitter.before:
