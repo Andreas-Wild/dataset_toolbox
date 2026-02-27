@@ -6,7 +6,7 @@ from nicegui import ui
 from nicegui.elements.label import Label
 
 from src.components.list_dir import ListDir
-from src.components.local_dir_picker import LocalDirectoryPicker
+from src.components.local_picker import LocalDirectoryPicker
 from src.layout import page_layout
 from toolbox.ome_converter import OMEConverter
 

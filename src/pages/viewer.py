@@ -3,7 +3,7 @@
 from nicegui import ui
 from nicegui.elements.label import Label
 
-from src.components.local_dir_picker import LocalDirectoryPicker
+from src.components.local_picker import LocalDirectoryPicker
 from src.layout import page_layout
 from toolbox.ome_converter import OMEConverter
 from toolbox.utilities import array_to_base64, overlay

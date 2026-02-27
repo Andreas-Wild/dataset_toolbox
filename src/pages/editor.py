@@ -8,7 +8,7 @@ from nicegui.elements.label import Label
 from nicegui.events import KeyEventArguments
 
 from src.components.data_editor import DatasetEditor
-from src.components.local_dir_picker import LocalDirectoryPicker
+from src.components.local_picker import LocalDirectoryPicker
 from src.layout import page_layout
 from toolbox.utilities import array_to_base64
 

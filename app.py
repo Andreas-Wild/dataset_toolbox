@@ -13,6 +13,7 @@ import src.pages.editor  # noqa: F401  –  /editor
 
 # Importing the page modules registers @ui.page routes as a side effect.
 import src.pages.home  # noqa: F401  –  /
+import src.pages.rle_converter  # noqa: F401  –  /rleconverter
 import src.pages.viewer  # noqa: F401  –  /viewer
 
 # Use for multithreaded process, like when native=true and reload=false
