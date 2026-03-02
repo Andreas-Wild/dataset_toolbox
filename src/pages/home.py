@@ -38,12 +38,23 @@ def home_page():
                         )
                 with (
                     ui.card()
+                    .on("click", lambda: ui.navigate.to("/rleconverter"))
+                    .classes("cursor-pointer hover:animate-pulse size-55")
+                ):
+                    with ui.column().classes("items-center p-4 gap-2 h-full"):
+                        ui.icon("change_circle", size="xl")
+                        ui.label("RLEConverter").classes("text-lg font-semibold")
+                        ui.label("Convert RLE masks to png images").classes(
+                            "text-lg text-gray-400 text-center"
+                        )
+                with (
+                    ui.card()
                     .on("click", lambda: ui.navigate.to("/converter"))
                     .classes("cursor-pointer hover:animate-pulse size-55")
                 ):
                     with ui.column().classes("items-center p-4 gap-2 h-full"):
                         ui.icon("swap_horizontal_circle", size="xl")
-                        ui.label("Converter").classes("text-lg font-semibold")
+                        ui.label("OME Converter").classes("text-lg font-semibold")
                         ui.label("Convert `.ome.tif` files to png").classes(
                             "text-lg text-gray-400 text-center"
                         )

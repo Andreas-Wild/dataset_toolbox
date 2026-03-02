@@ -153,7 +153,9 @@ class RLEConverter:
 
             processed_count += 1
 
-        print(f"Processing complete! Masks created: {processed_count}, Skipped: {skipped_count}")
+        print(
+            f"Processing complete! Masks created: {processed_count}, Skipped: {skipped_count}"
+        )
         print(f"Dataset saved to: {self.output_directory}")
 
 
@@ -173,7 +175,5 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    converter = RLEConverter(
-        args.annotation_json, args.image_source_directory
-    )
+    converter = RLEConverter(args.annotation_json, args.image_source_directory)
     converter.prepare_dataset()
