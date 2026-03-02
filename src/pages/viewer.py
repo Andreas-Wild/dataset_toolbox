@@ -1,5 +1,7 @@
 """OME TIFF Viewer page — browse OME-TIFF images with optional mask overlay."""
 
+import os
+
 from nicegui import ui
 from nicegui.elements.label import Label
 
@@ -8,6 +10,7 @@ from src.layout import page_layout
 from toolbox.ome_converter import OMEConverter
 from toolbox.utilities import array_to_base64, overlay
 
+DATA_ROOT = os.getenv("DATA_ROOT", "/data")
 PIXELATED_STYLE = "image-rendering: pixelated; max-height: 70vh;"
 PAGE_HELP = """
 The OME TIF viewer can be used to view ome.tif images with their respective default masks.
@@ -84,7 +87,7 @@ def viewer_page():
 
         async def pick_data_dir(label: Label):
             result = await LocalDirectoryPicker(
-                directory=label.text or "~",
+                directory=label.text or DATA_ROOT,
                 title="Select Data Directory",
             )
             if result:

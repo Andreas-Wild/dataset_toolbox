@@ -1,6 +1,7 @@
 """Converter page — a page dedicated to converting .ome.tif directories to png images.."""
 
 import asyncio
+import os
 
 from nicegui import ui
 from nicegui.elements.label import Label
@@ -9,6 +10,8 @@ from src.components.list_dir import ListDir
 from src.components.local_picker import LocalDirectoryPicker
 from src.layout import page_layout
 from toolbox.ome_converter import OMEConverter
+
+DATA_ROOT = os.getenv("DATA_ROOT", "/data")
 
 PAGE_HELP = """
 The Data Converter may be used to convert files from `.ome.tif` to `png`. Set the input directory and output directory by clicking on the respective '🗀' icon.
@@ -84,7 +87,7 @@ def converter_page():
                         # Here we need to create a callback to pick directories.
                         async def pick_data_dir(label: Label, table: ListDir):
                             result: str = await LocalDirectoryPicker(
-                                directory=label.text or "~",
+                                directory=label.text or DATA_ROOT,
                                 title="Select Data Directory",
                             )
                             if result:

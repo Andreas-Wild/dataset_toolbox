@@ -1,0 +1,33 @@
+<View>
+  <Style>
+    .ls-main-content { background-color: #f0f2f5; }
+    .ls-frames { border: 2px solid #ccc; border-radius: 8px; }
+  </Style>
+!Here you can prompt the model backend
+    <Header value="SAM2"/>
+  
+  <RectangleLabels name="prompts_bbox" toName="image" smart="true">
+    <Label value="Object_Type_A" background="#FF4D4F"/>
+    <Label value="Object_Type_B" background="#52C41A"/>
+    <Label value="Object_Type_C" background="#1890FF"/>
+  </RectangleLabels>
+
+  <KeyPointLabels name="prompts_points" toName="image" smart="true">
+    <Label value="Object_Type_A" background="#FF4D4F"/>
+    <Label value="Object_Type_B" background="#52C41A"/>
+    <Label value="Object_Type_C" background="#1890FF"/>
+    <Label value="Negative" background="#000000"/>
+  </KeyPointLabels>
+
+  <Image name="image" value="$image" zoom="true" scrollBar="true"/>
+!SAM2 returns these types of labels
+  <Header value="Manually use brush labels:"/>
+  
+  <BrushLabels name="masks" toName="image">
+    <Label value="Object_Type_A" background="#FF4D4F"/>
+    <Label value="Object_Type_B" background="#52C41A"/>
+    <Label value="Object_Type_C" background="#1890FF"/>
+  </BrushLabels>
+
+
+</View>

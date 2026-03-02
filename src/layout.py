@@ -44,6 +44,11 @@ def page_layout(title: str, help_text: str | None = None):
 
         with ui.row().classes("gap-2"):
             ui.button(
+                "Label Studio",
+                on_click=lambda: ui.navigate.to("/labelstudio"),
+                icon="label",
+            ).props("flat color=white").tooltip("Open Label Studio for annotation.")
+            ui.button(
                 "Editor", on_click=lambda: ui.navigate.to("/editor"), icon="edit"
             ).props("flat color=white").tooltip("Edit masks with fine-grained control.")
             ui.button(
