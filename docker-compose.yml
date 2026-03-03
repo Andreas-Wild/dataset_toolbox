@@ -20,6 +20,7 @@ services:
     environment:
       - STORAGE_SECRET=${STORAGE_SECRET:-change-me}
       - LABEL_STUDIO_URL=http://localhost:8081
+      - SAM2_ML_BACKEND_URL=http://sam2-ml-backend:9090
       - DATA_ROOT=/data
     networks:
       - pipeline-network
@@ -38,7 +39,8 @@ services:
 
   sam2-ml-backend:
     build:
-      context: ./ls_and_ml_backend/sam2/label-studio-ml-backend/label_studio_ml/examples/segment_anything_2_image/
+      context: ./ls_and_ml_backend/sam2/label-studio-ml-backend/
+      dockerfile: label_studio_ml/examples/segment_anything_2_image/Dockerfile
     environment:
       - LABEL_STUDIO_URL=http://label-studio:8080
       - LABEL_STUDIO_API_KEY=${LS_API_KEY}
