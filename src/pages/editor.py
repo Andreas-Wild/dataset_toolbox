@@ -1,5 +1,6 @@
 """Dataset Editor page — interactive mask editing for image datasets."""
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -11,6 +12,8 @@ from src.components.data_editor import DatasetEditor
 from src.components.local_picker import LocalDirectoryPicker
 from src.layout import page_layout
 from toolbox.utilities import array_to_base64
+
+DATA_ROOT = os.getenv("DATA_ROOT", "/data")
 
 PAGE_HELP = """
 The Image Dataset Editor page can be used to edit masks at the pixel level. This allows the user to have very fine-grained control over the final masks thee use for training.
@@ -40,7 +43,7 @@ def editor_page():
 
                     async def pick_data_dir(label: Label):
                         result: str = await LocalDirectoryPicker(
-                            directory=label.text or "~",
+                            directory=label.text or DATA_ROOT,
                             title="Select Data Directory",
                         )
                         if result:

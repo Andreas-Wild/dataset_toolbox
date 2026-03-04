@@ -1,6 +1,7 @@
 """RLE Converter page — convert Label Studio brush labels to png masks."""
 
 import asyncio
+import os
 import random
 from pathlib import Path
 
@@ -14,6 +15,7 @@ from src.layout import page_layout
 from toolbox.rle_converter import RLEConverter
 from toolbox.utilities import array_to_base64, overlay
 
+DATA_ROOT = os.getenv("DATA_ROOT", "/data")
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 PIXELATED_STYLE = "image-rendering: pixelated;"
 GALLERY_SIZE = 9
@@ -149,7 +151,7 @@ def rleconverter_page():
                             start_dir = (
                                 str(Path(annotations_label.text).parent)
                                 if annotations_label.text != "No file selected"
-                                else "~"
+                                else DATA_ROOT
                             )
                             result: str = await LocalFilePicker(
                                 start_dir,
@@ -190,7 +192,7 @@ def rleconverter_page():
                             start_dir = (
                                 image_source_label.text
                                 if image_source_label.text != "No directory selected"
-                                else "~"
+                                else DATA_ROOT
                             )
                             result: str = await LocalDirectoryPicker(
                                 start_dir,

@@ -1,0 +1,12 @@
+.venv
+.git
+.devcontainer
+.nicegui
+.ruff_cache
+.vscode
+__pycache__
+*.pyc
+output
+data
+bugs.md
+README.md

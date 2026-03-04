@@ -1,0 +1,37 @@
+services:
+  label-studio:
+    image: heartexlabs/label-studio:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/label-studio/data
+      - ./files:/label-studio/files:ro
+    environment:
+      - LABEL_STUDIO_LOCAL_FILES_SERVING_ENABLED=true
+      - LABEL_STUDIO_LOCAL_FILES_DOCUMENT_ROOT=/label-studio/files
+    networks:
+      - ls-network
+
+  sam2-ml-backend:
+    build:
+      context: ./sam2/label-studio-ml-backend/label_studio_ml/examples/segment_anything_2_image/
+      dockerfile: Dockerfile
+    ports:
+      - "9090:9090"
+    environment:
+      - LABEL_STUDIO_URL=http://label-studio:8080
+      - LABEL_STUDIO_API_KEY=${LS_API_KEY} # Place a LS_API_KEY inside of your .env file
+      - DEVICE=cuda # Use 'cpu' if no GPU is available
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - ls-network
+
+networks:
+  ls-network:
+    driver: bridge
